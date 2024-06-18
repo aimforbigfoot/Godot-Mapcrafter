@@ -1,0 +1,19 @@
+[gd_scene load_steps=5 format=3 uid="uid://b70gpijyn5frt"]
+
+[ext_resource type="Script" path="res://src/world.gd" id="1_brbbo"]
+[ext_resource type="Texture2D" uid="uid://7ue1kgc5r1p6" path="res://icon.svg" id="2_83ir3"]
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_it3hq"]
+texture = ExtResource("2_83ir3")
+1:1/0 = 0
+4:2/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_hma28"]
+sources/0 = SubResource("TileSetAtlasSource_it3hq")
+
+[node name="world" type="Node2D"]
+script = ExtResource("1_brbbo")
+
+[node name="TileMap" type="TileMap" parent="."]
+tile_set = SubResource("TileSet_hma28")
+format = 2
