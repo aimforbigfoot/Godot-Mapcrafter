@@ -57,3 +57,5 @@ func setCell ( x:int, y:int ,cellToSet:int, map:Array ) -> Array:
 	if x < WIDTH and x >= 0 and y < HEIGHT and y >= 0:
 		map[y ][x] = cellToSet
 	return map
+
+# test 
