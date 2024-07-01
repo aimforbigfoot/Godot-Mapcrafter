@@ -2,6 +2,7 @@ extends Node
 class_name MapGenManager
 
 enum TILES { WALL, FLOOR }
+#
 var mgh: MapGenHandler = MapGenHandler.new()
 
 # Function to generate an interesting map

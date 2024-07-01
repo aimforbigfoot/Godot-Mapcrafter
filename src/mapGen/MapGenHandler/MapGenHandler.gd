@@ -3,11 +3,11 @@
 # It is highly customizable and flexible and can be used to generate a whole host of maps 
 extends Node
 class_name MapGenHandler
+var fnl := FastNoiseLite.new()
 
-enum TILES { WALL, FLOOR }
+enum TILES { WALL, FLOOR, INTEREST }
 var wallTile := TILES.WALL
 var floorTile := TILES.FLOOR
-
 
 
 
@@ -89,7 +89,6 @@ func applyMirrorHorizontal(map: Array, flipFromTopToBottom: bool=true) -> Array:
 	return map_copy
 func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map:Array ) -> Array:
 	var a := map.duplicate(true)
-	var fnl := FastNoiseLite.new()
 	fnl.noise_type = FastNoiseLite.TYPE_PERLIN
 	fnl.frequency = freqVal
 	for y in map.size():
@@ -97,6 +96,17 @@ func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, m
 			var fnlNoise :float= abs(fnl.get_noise_2d( x,y  ))
 			if fnlNoise < thresholdValue:
 				a = setCell(x,y, cellToSet, a)
+	return a
+func applyFastValueNoise( freqVal:float, thresholdValue:float, cellToSet:int, map:Array ) -> Array:
+	var a := map.duplicate(true)
+	fnl.noise_type = FastNoiseLite.TYPE_VALUE
+	fnl.frequency = freqVal
+	for y in map.size():
+		for x in map[y].size():
+			var fnlNoise :float =fnl.get_noise_2d(x,y) * 10
+			if fnlNoise < thresholdValue:
+				a = setCell(x,y, cellToSet, a)
+		
 	return a
 # Apply cellular automaton (Conway's Game of Life)
 func applyCellularAutomata(generations: int, cellToApplyWith:int, cellToBlankWith:int, map: Array) -> Array:
@@ -149,6 +159,42 @@ func applySpecificTileToARandomSetOfTiles(cellToGetSelectionOf:int, cellToTurnIn
 		a = setCell(cell.x, cell.y, cellToTurnInto, a)
 	return a
 
+
+func connectClosestSections(corridor_size: int, max_connections: int, tile_type: int, map: Array) -> Array:
+	var sections = getSections(map)
+	var map_copy = map.duplicate(true)
+	var connections_made = {}
+
+	# Calculate centroids for all sections
+	var centroids = []
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+
+	# Connect sections
+	for i in range(centroids.size()):
+		var connections = 0
+		var distances = []
+
+		# Calculate distances to all other centroids
+		for j in range(centroids.size()):
+			if i != j:
+				distances.append({"index": j, "distance": distance(centroids[i], centroids[j])})
+
+		# Sort distances
+		distances.sort_custom(func(a, b): return a["distance"] < b["distance"])
+
+		# Connect to the closest sections
+		for dist in distances:
+			if connections >= max_connections:
+				break
+			var j = dist["index"]
+			var connection_key = min(i, j) * 1000 + max(i, j)  # Unique key for each pair
+			if not connections_made.has(connection_key):
+				map_copy = drawCorridor(centroids[i], centroids[j], tile_type, corridor_size, map_copy)
+				connections_made[connection_key] = true
+				connections += 1
+
+	return map_copy
 
 # ######################################## #
 #
@@ -269,7 +315,19 @@ func drawCorridor(start: Vector2, end: Vector2, tile_type: int, corridor_size: i
 			y0 += step_y
 	return mapCopy
 
+func drawToFillInPatchesOfASizeByTileType(min_size: int, cellToCheck:int, cellToFillWith:int, map: Array, ) -> Array:
+	var sections = getSections(map)
+	var map_copy = map.duplicate(true)
+	for section in sections:
+		if section:
+			
+			var firstPos :Vector2= section[0]
+			if getCell(firstPos.x, firstPos.y, map_copy) == cellToCheck:
+				if section.size() < min_size:
+					for pos in section:
+						map_copy = setCell( pos.x, pos.y, cellToFillWith, map_copy )
 
+	return map_copy
 
 # ######################################## #
 #
@@ -299,23 +357,9 @@ func getCell( x:int, y:int, map:Array ) -> int:
 	if x < width and x >= 0 and y < height and y >= 0:
 		cellType = map[y][x]
 	return cellType
-# prints a map to the godot terminal with X as Wall and _ as floors
-func printMap(map) -> void:
-	print("\n")
-	var aToPrint := []
-	for row in map:
-		#print(row)
-		aToPrint.append([])
-		var sToPrint := ''
-		for tile in row:
-			if tile== TILES.WALL:
-				sToPrint += "X"
-			else:
-				sToPrint += "_"
-		print(sToPrint)
 # just returns a random tile
-func getRandomTileType() -> int:
-	return TILES.WALL if randf() < 0.5 else TILES.FLOOR
+func getRandomTileType( arrOfPossibleTiles:Array ) -> int:
+	return arrOfPossibleTiles[ floor( randf() * arrOfPossibleTiles.size() )  ]
 func getMapHeightAndWidth(map:Array) -> Array:
 	return [  len(map)  , len(map[0])  ]
 func getHalfWayOfLength(width:int) -> int:
@@ -326,6 +370,31 @@ func getARandomPointInMap(map:Array) -> Vector2i:
 	return Vector2i( 
 		randi_range( 0, width ), 
 		randi_range(0, height) )
+func setFastNoiseLiteSeed(_seed:int) -> void:
+	fnl.seed = _seed
+	# Function to calculate distance between two points
+func distance(p1: Vector2, p2: Vector2) -> float:
+	return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2))
+
+# prints a map to the godot terminal with X as Wall and _ as floors
+func printMap(map:Array) -> void:
+	print("\n")
+	var aToPrint := []
+	for row in map:
+		#print(row)
+		aToPrint.append([])
+		var sToPrint := ''
+		for tile in row:
+			if tile == wallTile:
+				sToPrint += "🟫"
+			elif tile == floorTile:
+				sToPrint += "🟩"
+			elif tile == TILES.INTEREST:
+				sToPrint += "🟨"
+			else:
+				sToPrint += "🔴"
+		print(sToPrint)
+
 
 # ######################################## #
 #
@@ -336,29 +405,8 @@ func getARandomPointInMap(map:Array) -> Vector2i:
 #
 #
 # ######################################## #
-
 func getLesserTile( map:Array ) -> void:
-	var countOfTiles := {}
-	for tile in TILES:
-		countOfTiles[tile] = 0
-	for row in map:
-		for cell in row:
-			match cell:
-				
-				TILES.FLOOR:
-					countOfTiles["FLOOR"] += 1
-				TILES.WALL:
-					countOfTiles["WALL"] += 1
-	var countOfTilesArray := countOfTiles.values()
-	countOfTilesArray.sort()
-	countOfTilesArray.reverse()
-	var leastCountInCountOFTiles :int= countOfTilesArray[  countOfTilesArray.size()-1  ]
-	
-	prints(countOfTiles.values(), leastCountInCountOFTiles,countOfTilesArray)
-	for thing in countOfTiles:
-		if countOfTiles[thing] == leastCountInCountOFTiles:
-			print("this is the least tile rn: ", thing)
-			
+	pass
 	
 
 # Function to perform flood fill and return a section
@@ -461,6 +509,26 @@ func calculateCentroid(section: Array) -> Vector2:
 		sum_y += pos.y
 	return Vector2(sum_x / section.size(), sum_y / section.size())
 
+func identifyPointsOfInterestOnMapByTileType( tileToCheck:int,map:Array) -> Array:
+	var a := map.duplicate(true)
+	var sectionsByTileType := getSectionsOfACertainTile(tileToCheck, map)
+	for section in sectionsByTileType:
+		var centerOfSection := findCenterTileGivenASection( section )
+		setCell( centerOfSection.x, centerOfSection.y, 6, a )
+	return a
+
+func findCenterTileGivenASection(section: Array) -> Vector2:
+	if section.size() == 0:
+		return Vector2(-1, -1)  # Return an invalid position if the section is empty
+	var sum_x = 0
+	var sum_y = 0
+	for pos in section:
+		sum_x += pos.x
+		sum_y += pos.y
+	var center_x = int(round(float(sum_x) / section.size()))
+	var center_y = int(round(float(sum_y) / section.size()))
+
+	return Vector2(center_x, center_y)
 
 
 # ######################################## #
@@ -475,7 +543,7 @@ func calculateCentroid(section: Array) -> Vector2:
 
 
 #Generate a map -> generates a 2d array with at a given height and width
-func generateBlankMap(height:int, width:int, cellToSetWith:int=TILES.WALL) -> Array:
+func generateBlankMap(height:int, width:int, cellToSetWith:int) -> Array:
 	var a := []
 	for y in height:
 		a.append([])

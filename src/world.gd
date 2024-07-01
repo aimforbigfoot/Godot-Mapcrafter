@@ -1,19 +1,33 @@
 extends Node2D
-const WIDTH := 150
-const HEIGHT := 30
-var sot := []
 var count := 0
-var mgm := MapGenManager.new()
+const WIDTH := 100
+const HEIGHT := 70
+var mgh := MapGenHandler.new()
+var sot := []
+
+
 func _ready() -> void:
 	randomize()
-	sot = mgm.createComplexMap(WIDTH,HEIGHT)
-	pass
+	sot = mgh.generateBlankMap(HEIGHT, WIDTH, mgh.wallTile)
+	mgh.printMap(sot)
+	
 
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("r"):
 		get_tree().reload_current_scene()
 	if Input.is_action_just_pressed("step"):
-		mgm.printMap(sot)
-		seed( randi() )
-		sot = mgm.circleArena(WIDTH,HEIGHT)
+		mgh.setFastNoiseLiteSeed( randi() )
+		sot = mgh.applyFastValueNoise(0.30, 0.5, mgh.floorTile, sot)
+		
+		#else:
+			#sot = mgh.applyConnectionsToAllSections(2, mgh.floorTile, sot)
+		count += 1 
+		sot = mgh.drawBorder(mgh.wallTile, sot)
+		mgh.printMap(sot)
+		
+	if Input.is_action_just_pressed("w"):
+		sot = mgh.drawToFillInPatchesOfASizeByTileType( 50, mgh.floorTile,mgh.wallTile, sot )
+		sot = mgh.connectClosestSections( 2, 2, mgh.floorTile, sot )
+		#sot = mgh.applyConnectionsToAllSections(2, mgh.floorTile, sot)
+		mgh.printMap(sot)
