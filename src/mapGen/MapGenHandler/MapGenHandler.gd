@@ -91,7 +91,40 @@ func applyMirrorHorizontal(map: Array, flipFromTopToBottom: bool=true) -> Array:
 			for x in range(width):
 				var value = map[y][x]
 				map_copy[height - 1 - y][x] = value  # Reflect across the horizontal centerline
+	return map_copy
 
+
+func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map:Array ) -> Array:
+	var a := map.duplicate(true)
+	var fnl := FastNoiseLite.new()
+	fnl.noise_type = FastNoiseLite.TYPE_PERLIN
+	fnl.frequency = freqVal
+	for y in map.size():
+		for x in map[y].size():
+			var fnlNoise := fnl.get_noise_2d( x,y  )
+			print(fnlNoise)
+			if fnlNoise < thresholdValue:
+				a = setCell(x,y, cellToSet, a)
+	return a
+
+
+
+# Apply cellular automaton (Conway's Game of Life)
+func apply_cellular_automaton(map: Array, generations: int) -> Array:
+	var map_copy = map.duplicate(true)
+	var height = map.size()
+	var width = map[0].size()
+
+	for generation in range(generations):
+		var new_map = map_copy.duplicate(true)
+		for y in range(height):
+			for x in range(width):
+				var alive_neighbors = count_alive_neighbors(x, y, map_copy)
+				if map_copy[y][x] == TILES.FLOOR:
+					new_map[y][x] = TILES.FLOOR if alive_neighbors in range(2, 4) else TILES.WALL
+				else:
+					new_map[y][x] = TILES.FLOOR if alive_neighbors == 3 else TILES.WALL
+		map_copy = new_map
 	return map_copy
 
 
@@ -148,6 +181,7 @@ func drawBorder(cellToSet:int, map:Array) -> Array:
 		a[height-1][x] = cellToSet
 	return a 
 
+
 func drawRandomWalk( startPos:Vector2i, steps:int, cellToSet:int, map:Array  ) -> Array:
 	var a :=map.duplicate(true)
 	var currPos := startPos
@@ -162,15 +196,37 @@ func drawRandomWalk( startPos:Vector2i, steps:int, cellToSet:int, map:Array  ) -
 	return a
 
 
+func drawCircle(centerOfCircle: Vector2, radius: int, cellToSet: int,map: Array) -> Array:
+	var map_copy = map.duplicate(true)
+	var cx = centerOfCircle.x
+	var cy = centerOfCircle.y
+
+	for y in range(cy - radius, cy + radius + 1):
+		for x in range(cx - radius, cx + radius + 1):
+			if (x - cx) * (x - cx) + (y - cy) * (y - cy) <= radius * radius:
+				setCell(x, y, cellToSet, map_copy)
+	return map_copy
+
+
+func drawSquare(top_left: Vector2, size: int, cellToSet: int, map: Array) -> Array:
+	var a := map.duplicate(true)
+	for y in range(top_left.y, top_left.y + size):
+		for x in range(top_left.x, top_left.x + size):
+			a = setCell(x, y, cellToSet, a)
+	return a
 
 
 
+func drawSquareEveryNthTiles(square_size: int, every_x_tiles: int, padding: int, cellToSet: int, map: Array) -> Array:
+	var map_copy = map.duplicate(true)
+	var width = map[0].size()
+	var height = map.size()
 
-
-
-
-
-
+	for y in range(0, height, every_x_tiles):
+		for x in range(0, width, every_x_tiles):
+			var top_left = Vector2(x + padding, y + padding)
+			map_copy = drawSquare(top_left, square_size, cellToSet, map_copy)
+	return map_copy
 
 
 
@@ -332,3 +388,18 @@ func turnRandomSectionIntoAnother(cellToTurnInto:int, map:Array) -> Array:
 	for cell in section:
 		a = setCell(cell.x, cell.y, cellToTurnInto, a)
 	return a
+
+
+# Helper function to count alive neighbors
+func count_alive_neighbors(x: int, y: int, map: Array) -> int:
+	var count = 0
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			if dx == 0 and dy == 0:
+				continue
+			var nx = x + dx
+			var ny = y + dy
+			if nx >= 0 and nx < map[0].size() and ny >= 0 and ny < map.size():
+				if map[ny][nx] == TILES.FLOOR:
+					count += 1
+	return count
