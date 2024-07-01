@@ -43,7 +43,7 @@ func applyStochasticCellularAutomota(map:Array, cellToSet:int,  randomChance:flo
 		y+= 1
 	return mapCopy
 
-
+# this will only copy top left and place it around
 func applyRadialSymmetry(map: Array) -> Array:
 	var map_copy = map.duplicate(true)
 	var height = map.size()
@@ -57,13 +57,10 @@ func applyRadialSymmetry(map: Array) -> Array:
 			map_copy[height - 1 - y][x] = value  # Bottom-left
 			map_copy[height - 1 - y][width - 1 - x] = value  # Bottom-right
 	return map_copy
-
-
 func applyMirrorVertical(map: Array, flipFromLeftToRight:bool=true) -> Array:
 	var map_copy = map.duplicate(true)
 	var height = map.size()
 	var width = map[0].size()
-
 	if flipFromLeftToRight:
 		for y in range(height):
 			for x in range(0, getHalfWayOfLength(width) ):
@@ -75,12 +72,10 @@ func applyMirrorVertical(map: Array, flipFromLeftToRight:bool=true) -> Array:
 				var value = map[y][x]
 				map_copy[y][width - 1 - x] = value  # Reflect across the vertical centerline
 	return map_copy
-
 func applyMirrorHorizontal(map: Array, flipFromTopToBottom: bool=true) -> Array:
 	var map_copy = map.duplicate(true)
 	var height = map.size()
 	var width = map[0].size()
-
 	if flipFromTopToBottom:
 		for y in range( 0, getHalfWayOfLength(height) ):
 			for x in range(width):
@@ -92,8 +87,6 @@ func applyMirrorHorizontal(map: Array, flipFromTopToBottom: bool=true) -> Array:
 				var value = map[y][x]
 				map_copy[height - 1 - y][x] = value  # Reflect across the horizontal centerline
 	return map_copy
-
-
 func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map:Array ) -> Array:
 	var a := map.duplicate(true)
 	var fnl := FastNoiseLite.new()
@@ -101,31 +94,60 @@ func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, m
 	fnl.frequency = freqVal
 	for y in map.size():
 		for x in map[y].size():
-			var fnlNoise := fnl.get_noise_2d( x,y  )
-			print(fnlNoise)
+			var fnlNoise :float= abs(fnl.get_noise_2d( x,y  ))
 			if fnlNoise < thresholdValue:
 				a = setCell(x,y, cellToSet, a)
 	return a
-
-
-
 # Apply cellular automaton (Conway's Game of Life)
-func apply_cellular_automaton(map: Array, generations: int) -> Array:
-	var map_copy = map.duplicate(true)
-	var height = map.size()
-	var width = map[0].size()
+func applyCellularAutomata(generations: int, cellToApplyWith:int, cellToBlankWith:int, map: Array) -> Array:
+	var map_copy :Array= map.duplicate(true)
+	var height :int= map.size()
+	var width :int= map[0].size()
 
 	for generation in range(generations):
-		var new_map = map_copy.duplicate(true)
+		var new_map := map_copy.duplicate(true)
 		for y in range(height):
 			for x in range(width):
-				var alive_neighbors = count_alive_neighbors(x, y, map_copy)
-				if map_copy[y][x] == TILES.FLOOR:
-					new_map[y][x] = TILES.FLOOR if alive_neighbors in range(2, 4) else TILES.WALL
+				var alive_neighbors := countNeighborsOfCertainCellType(x, y, cellToApplyWith, map_copy)
+				if map_copy[y][x] == cellToApplyWith:
+					new_map[y][x] = cellToApplyWith if alive_neighbors in range(2, 4) else cellToBlankWith
 				else:
-					new_map[y][x] = TILES.FLOOR if alive_neighbors == 3 else TILES.WALL
+					new_map[y][x] = cellToApplyWith if alive_neighbors == 3 else cellToBlankWith
 		map_copy = new_map
 	return map_copy
+func applyErosion(iterations: int, cellToApplyWith:int, cellToGetRidOf:int, map: Array) -> Array:
+	var map_copy := map.duplicate(true)
+	var height := map.size()
+	var width :int= map[0].size()
+	var neighborsCount := 4 if randf() < 0.5 else 5
+
+	for i in range(iterations):
+		for y in range(height):
+			for x in range(width):
+				if map_copy[y][x] == cellToGetRidOf:
+					var neighbors = countNeighborsOfCertainCellType(x, y, cellToApplyWith, map_copy)
+					if neighbors >= neighborsCount:
+						map_copy[y][x] = cellToApplyWith
+	return map_copy
+# Function to connect all sections
+func applyConnectionsToAllSections(connectionSize:int, tile_type: int, map: Array) -> Array:
+	var sections = getSections(map)
+	var centroids = []
+	
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+	var map_copy = map.duplicate(true)
+	for i in range(centroids.size() - 1):
+		map_copy = drawCorridor(centroids[i], centroids[i + 1], tile_type, connectionSize, map_copy)
+	return map_copy
+#this may not seem to do anything cuz this will truly just grab a random section and turn all the tiles
+# in that section into another tile, 
+func applySpecificTileToARandomSetOfTiles(cellToGetSelectionOf:int, cellToTurnInto:int, map:Array) -> Array:
+	var a := map.duplicate(true)
+	var section :=  getARandomSectionByTile(cellToGetSelectionOf, map)
+	for cell in section:
+		a = setCell(cell.x, cell.y, cellToTurnInto, a)
+	return a
 
 
 # ######################################## #
@@ -150,13 +172,10 @@ func drawRandomLine( startPoint:Vector2i, endPoint:Vector2i, lineSize:int, steps
 		else:
 			dirToMoveIn = Vector2i( 0, sign(diff.y) ) 
 		currPos += dirToMoveIn
-		print(currPos, endPoint)
 		for dx in range( -lineSize, lineSize  ):
 			for dy in range( -lineSize, lineSize ):
 				a = setCell( currPos.x + dx, currPos.y + dy, cellToSet, a )
 	return a
-
-
 
 func drawBox(startPoint:Vector2i, size:int,  cellToSet:int, map:Array) -> Array:
 	var a := map.duplicate(true)
@@ -164,7 +183,6 @@ func drawBox(startPoint:Vector2i, size:int,  cellToSet:int, map:Array) -> Array:
 		for x in range( -size+startPoint.x, size+1+startPoint.x ):
 			a = setCell(x,y, cellToSet, a)
 	return a 
-
 
 # ensures that a map will always have walls, is an optional and opininated function
 # this does not need to be used at 
@@ -180,22 +198,22 @@ func drawBorder(cellToSet:int, map:Array) -> Array:
 		a[0][x] = cellToSet
 		a[height-1][x] = cellToSet
 	return a 
-
-
-func drawRandomWalk( startPos:Vector2i, steps:int, cellToSet:int, map:Array  ) -> Array:
-	var a :=map.duplicate(true)
-	var currPos := startPos
-	for i in steps:
-		var xDir := randi_range(-1,1)
-		var yDir := 0
-		if !(xDir == -1 or xDir == 1):
+func drawRandomWalk(startPos: Vector2i, steps: int, cellToSet: int, thickness: int, map: Array) -> Array:
+	var a = map.duplicate(true)
+	var currPos = startPos
+	for i in range(steps):
+		var xDir = randi_range(-1, 1)
+		var yDir = 0
+		if xDir == 0:  # If there's no horizontal movement, choose vertical movement
 			yDir = 1 if randf() < 0.5 else -1
-		var dir := Vector2i( xDir ,  yDir ) 
+		var dir = Vector2i(xDir, yDir)
 		currPos += dir
-		a = setCell(currPos.x, currPos.y, cellToSet, map )
+		# Apply thickness to the walk
+		for dx in range(-thickness, thickness + 1):
+			for dy in range(-thickness, thickness + 1):
+				if dx * dx + dy * dy <= thickness * thickness:
+					a = setCell(currPos.x + dx, currPos.y + dy, cellToSet, a)
 	return a
-
-
 func drawCircle(centerOfCircle: Vector2, radius: int, cellToSet: int,map: Array) -> Array:
 	var map_copy = map.duplicate(true)
 	var cx = centerOfCircle.x
@@ -206,17 +224,12 @@ func drawCircle(centerOfCircle: Vector2, radius: int, cellToSet: int,map: Array)
 			if (x - cx) * (x - cx) + (y - cy) * (y - cy) <= radius * radius:
 				setCell(x, y, cellToSet, map_copy)
 	return map_copy
-
-
 func drawSquare(top_left: Vector2, size: int, cellToSet: int, map: Array) -> Array:
 	var a := map.duplicate(true)
 	for y in range(top_left.y, top_left.y + size):
 		for x in range(top_left.x, top_left.x + size):
 			a = setCell(x, y, cellToSet, a)
 	return a
-
-
-
 func drawSquareEveryNthTiles(square_size: int, every_x_tiles: int, padding: int, cellToSet: int, map: Array) -> Array:
 	var map_copy = map.duplicate(true)
 	var width = map[0].size()
@@ -227,7 +240,34 @@ func drawSquareEveryNthTiles(square_size: int, every_x_tiles: int, padding: int,
 			var top_left = Vector2(x + padding, y + padding)
 			map_copy = drawSquare(top_left, square_size, cellToSet, map_copy)
 	return map_copy
+# Function to create a corridor between two points with a specified size
+func drawCorridor(start: Vector2, end: Vector2, tile_type: int, corridor_size: int, map: Array) -> Array:
+	var mapCopy = map.duplicate(true)
+	var x0 = int(start.x)
+	var y0 = int(start.y)
+	var x1 = int(end.x)
+	var y1 = int(end.y)
 
+	var dx = abs(x1 - x0)
+	var dy = abs(y1 - y0)
+	var step_x = 1 if x0 < x1 else -1
+	var step_y = 1 if y0 < y1 else -1
+	var err = dx - dy
+
+	while true:
+		for offset_x in range(-corridor_size, corridor_size + 1):
+			for offset_y in range(-corridor_size, corridor_size + 1):
+				mapCopy = setCell(x0 + offset_x, y0 + offset_y, tile_type, mapCopy)
+		if x0 == x1 and y0 == y1:
+			break
+		var e2 = err * 2
+		if e2 > -dy:
+			err -= dy
+			x0 += step_x
+		if e2 < dx:
+			err += dx
+			y0 += step_y
+	return mapCopy
 
 
 
@@ -236,19 +276,11 @@ func drawSquareEveryNthTiles(square_size: int, every_x_tiles: int, padding: int,
 #
 #
 #			BASIC MAP FUNCTIONS 
-#
+#	functiosn that make map mods and data collection from the map
+#	a lot easier for the developer (you) :) 
 #
 #
 # ######################################## #
-
-#Generate a map -> generates a 2d array with at a given height and width
-func generateMap(height:int, width:int, cellToSetWith:int=TILES.WALL) -> Array:
-	var a := []
-	for y in height:
-		a.append([])
-		for x in width:
-			a[y].append(cellToSetWith)
-	return a
 
 # Sets a cell by checking the width and height of the map to ensure cell placement always happens
 # can be cusomtized to handle placing outside or looping around
@@ -259,7 +291,6 @@ func setCell ( x:int, y:int, cellToSet:int, map:Array ) -> Array:
 	if x < width and x >= 0 and y < height and y >= 0:	
 		map[y][x] = cellToSet
 	return map
-
 func getCell( x:int, y:int, map:Array ) -> int:
 	var cellType := -1
 	var res := getMapHeightAndWidth(map)
@@ -268,7 +299,6 @@ func getCell( x:int, y:int, map:Array ) -> int:
 	if x < width and x >= 0 and y < height and y >= 0:
 		cellType = map[y][x]
 	return cellType
-
 # prints a map to the godot terminal with X as Wall and _ as floors
 func printMap(map) -> void:
 	print("\n")
@@ -283,17 +313,19 @@ func printMap(map) -> void:
 			else:
 				sToPrint += "_"
 		print(sToPrint)
-
 # just returns a random tile
 func getRandomTileType() -> int:
 	return TILES.WALL if randf() < 0.5 else TILES.FLOOR
-
 func getMapHeightAndWidth(map:Array) -> Array:
 	return [  len(map)  , len(map[0])  ]
-
 func getHalfWayOfLength(width:int) -> int:
 	return int( floor( width/2 ) )
-
+func getARandomPointInMap(map:Array) -> Vector2i:
+	var height := map.size()
+	var width :int= map[0].size()
+	return Vector2i( 
+		randi_range( 0, width ), 
+		randi_range(0, height) )
 
 # ######################################## #
 #
@@ -326,10 +358,11 @@ func getLesserTile( map:Array ) -> void:
 	for thing in countOfTiles:
 		if countOfTiles[thing] == leastCountInCountOFTiles:
 			print("this is the least tile rn: ", thing)
+			
 	
 
 # Function to perform flood fill and return a section
-func flood_fill(map: Array, start_pos: Vector2, tile_type: int, visited: Dictionary) -> Array:
+func getAllTilesOfSameTypeWithFloodFill(map: Array, start_pos: Vector2, tile_type: int, visited: Dictionary) -> Array:
 	var directions = [
 		Vector2(1, 0),
 		Vector2(-1, 0),
@@ -358,40 +391,56 @@ func flood_fill(map: Array, start_pos: Vector2, tile_type: int, visited: Diction
 
 		for direction in directions:
 			stack.append(Vector2(x + direction.x, y + direction.y))
-
 	return section
 
 # Function to get all sections in the map
 func getSections(map: Array) -> Array:
 	var visited = {}
 	var sections = []
-
 	for y in range(map.size()):
 		for x in range(map[0].size()):
 			if not visited.has(Vector2(x, y)):
 				var tile_type = map[y][x]
-				var section = flood_fill(map, Vector2(x, y), tile_type, visited)
+				var section = getAllTilesOfSameTypeWithFloodFill(map, Vector2(x, y), tile_type, visited)
 				if section.size() > 0:
 					sections.append(section)
-
 	return sections
 
-func getARandomSection( map:Array )-> Array:
+# Function to get all sections of a certain tile type
+func getSectionsOfACertainTile(tile_type: int, map: Array) -> Array:
+	var visited = {}
+	var sections = []
+
+	for y in range(map.size()):
+		for x in range(map[0].size()):
+			if not visited.has(Vector2(x, y)) and map[y][x] == tile_type:
+				var section = getAllTilesOfSameTypeWithFloodFill(map, Vector2(x, y), tile_type, visited)
+				if section.size() > 0:
+					sections.append(section)
+	return sections
+
+func getARandomSection( sections:Array , map:Array )-> Array:
 	var randSection : Array
-	var sections := getSections(map)
 	randSection = sections[  floor( randf() * sections.size() )  ]
 	return randSection
 
-func turnRandomSectionIntoAnother(cellToTurnInto:int, map:Array) -> Array:
-	var a := map.duplicate(true)
-	var section := getARandomSection(map)
-	for cell in section:
-		a = setCell(cell.x, cell.y, cellToTurnInto, a)
-	return a
+func getARandomSectionByTile( cellToGetSelectionOf:int, map:Array  ) -> Array:
+	return getARandomSection(  getSectionsOfACertainTile(cellToGetSelectionOf, map), map)
 
+
+# Function to get the largest section of a certain tile type
+func getLargestSectionOfTileType(tile_type: int, map: Array) -> Array:
+	var sections = getSectionsOfACertainTile(tile_type, map)
+	var largest_section = []
+	var max_size = 0
+	for section in sections:
+		if section.size() > max_size:
+			largest_section = section
+			max_size = section.size()
+	return largest_section
 
 # Helper function to count alive neighbors
-func count_alive_neighbors(x: int, y: int, map: Array) -> int:
+func countNeighborsOfCertainCellType(x: int, y: int, cellToCheck:int, map: Array) -> int:
 	var count = 0
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
@@ -399,7 +448,95 @@ func count_alive_neighbors(x: int, y: int, map: Array) -> int:
 				continue
 			var nx = x + dx
 			var ny = y + dy
-			if nx >= 0 and nx < map[0].size() and ny >= 0 and ny < map.size():
-				if map[ny][nx] == TILES.FLOOR:
-					count += 1
+			if getCell(nx,ny, map) ==  cellToCheck:
+				count += 1
 	return count
+
+# Function to calculate the centroid of a section
+func calculateCentroid(section: Array) -> Vector2:
+	var sum_x = 0
+	var sum_y = 0
+	for pos in section:
+		sum_x += pos.x
+		sum_y += pos.y
+	return Vector2(sum_x / section.size(), sum_y / section.size())
+
+
+
+# ######################################## #
+#
+#
+#
+#			MAP GENERATORS
+#	functions that help make a blank map
+#
+#
+# ######################################## #
+
+
+#Generate a map -> generates a 2d array with at a given height and width
+func generateBlankMap(height:int, width:int, cellToSetWith:int=TILES.WALL) -> Array:
+	var a := []
+	for y in height:
+		a.append([])
+		for x in width:
+			a[y].append(cellToSetWith)
+	return a
+# Generate a map with a border of specified thickness
+func generateBorderedMap(width: int, height: int, border_tile: int, inner_tile: int, border_thickness: int = 1) -> Array:
+	var map = []
+	for y in range(height):
+		var row = []
+		for x in range(width):
+			if y < border_thickness or y >= height - border_thickness or x < border_thickness or x >= width - border_thickness:
+				row.append(border_tile)
+			else:
+				row.append(inner_tile)
+		map.append(row)
+	return map
+# Generate a diagonal stripes pattern map with customizable stripe width and direction
+func generateDiagonalStripesMap(width: int, height: int, tile_type1: int, tile_type2: int, stripe_width: int = 1, reverse_direction: bool = false) -> Array:
+	var map = []
+	for y in range(height):
+		var row = []
+		for x in range(width):
+			var diagonal_index = x + y if reverse_direction else x - y
+			# Use integer division to determine which stripe we're in
+			var stripe_index = (diagonal_index / stripe_width) % 2
+			row.append(tile_type1 if stripe_index == 0 else tile_type2)
+		map.append(row)
+	return map
+# Generate a row by row pattern map with a specified row thickness
+func generateRowMap(width: int, height: int, tile_type1: int, tile_type2: int, row_thickness: int) -> Array:
+	var map = []
+	for y in range(height):
+		var row = []
+		var current_tile_type = tile_type1 if (y / row_thickness) % 2 == 0 else tile_type2
+		for x in range(width):
+			row.append(current_tile_type)
+		map.append(row)
+	return map
+# Generate a column by column pattern map with a specified column thickness
+func generateColumnMap(width: int, height: int, tile_type1: int, tile_type2: int, column_thickness: int) -> Array:
+	var map = []
+	for y in range(height):
+		var row = []
+		for x in range(width):
+			var current_tile_type = tile_type1 if (x / column_thickness) % 2 == 0 else tile_type2
+			row.append(current_tile_type)
+		map.append(row)
+	return map
+# Generate a checkerboard pattern map with a specified square size
+func generateCheckerboardMap(width: int, height: int, tile_type1: int, tile_type2: int, square_size: int) -> Array:
+	var map = []
+	for y in range(height):
+		var row = []
+		for x in range(width):
+			var checker_x = (x / square_size) % 2
+			var checker_y = (y / square_size) % 2
+			row.append(tile_type1 if (checker_x + checker_y) % 2 == 0 else tile_type2)
+		map.append(row)
+	return map
+# TO DO
+# I need functiosn that go into a random section of tile and place a specific feature into it
+# perhaps a function that only goes into the top left and then youd apply radial symmetry to that stuff
