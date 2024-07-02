@@ -3,12 +3,16 @@ var count := 0
 const WIDTH := 100
 const HEIGHT := 70
 var mgh := MapGenHandler.new()
+var mgm := MapGenManager.new()
 var sot := []
 
 
 func _ready() -> void:
 	randomize()
-	sot = mgh.generateBlankMap(HEIGHT, WIDTH, mgh.wallTile)
+	#sot = mgh.generateBlankMap(HEIGHT, WIDTH, mgh.wallTile)
+	sot = mgm.generateBlobbyMap(WIDTH,HEIGHT)
+	mgh.printMap(sot)
+	sot = mgh.checkAndConnectIfAllSectionsOfACertainTileAreConnected(mgh.floorTile, sot)
 	mgh.printMap(sot)
 	
 
@@ -28,6 +32,6 @@ func _input(event: InputEvent) -> void:
 		
 	if Input.is_action_just_pressed("w"):
 		sot = mgh.drawToFillInPatchesOfASizeByTileType( 50, mgh.floorTile,mgh.wallTile, sot )
-		sot = mgh.connectClosestSections( 2, 2, mgh.floorTile, sot )
+		sot = mgh.applyConnectionToClosestSections( 2, 2, mgh.floorTile, sot )
 		#sot = mgh.applyConnectionsToAllSections(2, mgh.floorTile, sot)
 		mgh.printMap(sot)

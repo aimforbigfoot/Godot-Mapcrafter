@@ -160,7 +160,7 @@ func applySpecificTileToARandomSetOfTiles(cellToGetSelectionOf:int, cellToTurnIn
 	return a
 
 
-func connectClosestSections(corridor_size: int, max_connections: int, tile_type: int, map: Array) -> Array:
+func applyConnectionToClosestSections(corridor_size: int, max_connections: int, tile_type: int, map: Array) -> Array:
 	var sections = getSections(map)
 	var map_copy = map.duplicate(true)
 	var connections_made = {}
@@ -196,6 +196,22 @@ func connectClosestSections(corridor_size: int, max_connections: int, tile_type:
 
 	return map_copy
 
+func applyExpandedTiles(expansionSize: int, tileToSet: int, map: Array) -> Array:
+	var map_copy = map.duplicate(true)
+	var width = map[0].size()
+	var height = map.size()
+
+	for y in range(height):
+		for x in range(width):
+			if map[y][x] == tileToSet:
+				for dx in range(-expansionSize, expansionSize + 1):
+					for dy in range(-expansionSize, expansionSize + 1):
+						var newX = x + dx
+						var newY = y + dy
+						setCell(newX, newY, tileToSet, map_copy)
+
+	return map_copy
+
 # ######################################## #
 #
 #
@@ -207,7 +223,7 @@ func connectClosestSections(corridor_size: int, max_connections: int, tile_type:
 # ######################################## #
 
 
-func drawRandomLine( startPoint:Vector2i, endPoint:Vector2i, lineSize:int, stepsToTake:int, cellToSet:int, map:Array ) -> Array:
+func drawLine( startPoint:Vector2i, endPoint:Vector2i, lineSize:int, stepsToTake:int, cellToSet:int, map:Array ) -> Array:
 	var a := map.duplicate(true)
 	var currPos := startPoint
 	for i in stepsToTake:
@@ -386,7 +402,7 @@ func printMap(map:Array) -> void:
 		var sToPrint := ''
 		for tile in row:
 			if tile == wallTile:
-				sToPrint += "🟫"
+				sToPrint += "⬛"
 			elif tile == floorTile:
 				sToPrint += "🟩"
 			elif tile == TILES.INTEREST:
@@ -405,9 +421,29 @@ func printMap(map:Array) -> void:
 #
 #
 # ######################################## #
-func getLesserTile( map:Array ) -> void:
-	pass
-	
+
+# Function to count the occurrences of each tile type in the map
+func countTiles(map: Array) -> Dictionary:
+	var countOfTiles = {}
+	for row in map:
+		for cell in row:
+			if not countOfTiles.has(cell):
+				countOfTiles[cell] = 0
+			countOfTiles[cell] += 1
+	return countOfTiles
+
+# Function to get the tile type with the least occurrences in the map
+func getLeastCommonTile(map: Array) -> int:
+	var countOfTiles = countTiles(map)
+	var minCount = INF
+	var leastCommonTile = -1
+
+	for tile in countOfTiles.keys():
+		if countOfTiles[tile] < minCount:
+			minCount = countOfTiles[tile]
+			leastCommonTile = tile
+
+	return leastCommonTile
 
 # Function to perform flood fill and return a section
 func getAllTilesOfSameTypeWithFloodFill(map: Array, start_pos: Vector2, tile_type: int, visited: Dictionary) -> Array:
@@ -441,51 +477,6 @@ func getAllTilesOfSameTypeWithFloodFill(map: Array, start_pos: Vector2, tile_typ
 			stack.append(Vector2(x + direction.x, y + direction.y))
 	return section
 
-# Function to get all sections in the map
-func getSections(map: Array) -> Array:
-	var visited = {}
-	var sections = []
-	for y in range(map.size()):
-		for x in range(map[0].size()):
-			if not visited.has(Vector2(x, y)):
-				var tile_type = map[y][x]
-				var section = getAllTilesOfSameTypeWithFloodFill(map, Vector2(x, y), tile_type, visited)
-				if section.size() > 0:
-					sections.append(section)
-	return sections
-
-# Function to get all sections of a certain tile type
-func getSectionsOfACertainTile(tile_type: int, map: Array) -> Array:
-	var visited = {}
-	var sections = []
-
-	for y in range(map.size()):
-		for x in range(map[0].size()):
-			if not visited.has(Vector2(x, y)) and map[y][x] == tile_type:
-				var section = getAllTilesOfSameTypeWithFloodFill(map, Vector2(x, y), tile_type, visited)
-				if section.size() > 0:
-					sections.append(section)
-	return sections
-
-func getARandomSection( sections:Array , map:Array )-> Array:
-	var randSection : Array
-	randSection = sections[  floor( randf() * sections.size() )  ]
-	return randSection
-
-func getARandomSectionByTile( cellToGetSelectionOf:int, map:Array  ) -> Array:
-	return getARandomSection(  getSectionsOfACertainTile(cellToGetSelectionOf, map), map)
-
-
-# Function to get the largest section of a certain tile type
-func getLargestSectionOfTileType(tile_type: int, map: Array) -> Array:
-	var sections = getSectionsOfACertainTile(tile_type, map)
-	var largest_section = []
-	var max_size = 0
-	for section in sections:
-		if section.size() > max_size:
-			largest_section = section
-			max_size = section.size()
-	return largest_section
 
 # Helper function to count alive neighbors
 func countNeighborsOfCertainCellType(x: int, y: int, cellToCheck:int, map: Array) -> int:
@@ -500,15 +491,6 @@ func countNeighborsOfCertainCellType(x: int, y: int, cellToCheck:int, map: Array
 				count += 1
 	return count
 
-# Function to calculate the centroid of a section
-func calculateCentroid(section: Array) -> Vector2:
-	var sum_x = 0
-	var sum_y = 0
-	for pos in section:
-		sum_x += pos.x
-		sum_y += pos.y
-	return Vector2(sum_x / section.size(), sum_y / section.size())
-
 func identifyPointsOfInterestOnMapByTileType( tileToCheck:int,map:Array) -> Array:
 	var a := map.duplicate(true)
 	var sectionsByTileType := getSectionsOfACertainTile(tileToCheck, map)
@@ -517,6 +499,58 @@ func identifyPointsOfInterestOnMapByTileType( tileToCheck:int,map:Array) -> Arra
 		setCell( centerOfSection.x, centerOfSection.y, 6, a )
 	return a
 
+# ######################################## #
+#
+#
+#
+#			MAP SECTION FUNCTIONS 
+#	functions that relate to sections of a map
+#	and their manipulation / calulation
+#
+#
+# ######################################## #
+
+# Function to get all sections in the map
+func getSections(map: Array) -> Array:
+	var visited = {}
+	var sections = []
+	for y in range(map.size()):
+		for x in range(map[0].size()):
+			if not visited.has(Vector2(x, y)):
+				var tile_type = map[y][x]
+				var section = getAllTilesOfSameTypeWithFloodFill(map, Vector2(x, y), tile_type, visited)
+				if section.size() > 0:
+					sections.append(section)
+	return sections
+# Function to get all sections of a certain tile type
+func getSectionsOfACertainTile(tile_type: int, map: Array) -> Array:
+	var visited = {}
+	var sections = []
+
+	for y in range(map.size()):
+		for x in range(map[0].size()):
+			if not visited.has(Vector2(x, y)) and map[y][x] == tile_type:
+				var section = getAllTilesOfSameTypeWithFloodFill(map, Vector2(x, y), tile_type, visited)
+				if section.size() > 0:
+					sections.append(section)
+	return sections
+func getARandomSection( sections:Array , map:Array )-> Array:
+	var randSection : Array
+	randSection = sections[  floor( randf() * sections.size() )  ]
+	return randSection
+func getARandomSectionByTile( cellToGetSelectionOf:int, map:Array  ) -> Array:
+	return getARandomSection(  getSectionsOfACertainTile(cellToGetSelectionOf, map), map)
+
+# Function to get the largest section of a certain tile type
+func getLargestSectionOfTileType(tile_type: int, map: Array) -> Array:
+	var sections = getSectionsOfACertainTile(tile_type, map)
+	var largest_section = []
+	var max_size = 0
+	for section in sections:
+		if section.size() > max_size:
+			largest_section = section
+			max_size = section.size()
+	return largest_section
 func findCenterTileGivenASection(section: Array) -> Vector2:
 	if section.size() == 0:
 		return Vector2(-1, -1)  # Return an invalid position if the section is empty
@@ -529,6 +563,51 @@ func findCenterTileGivenASection(section: Array) -> Vector2:
 	var center_y = int(round(float(sum_y) / section.size()))
 
 	return Vector2(center_x, center_y)
+
+
+func checkAndConnectIfAllSectionsOfACertainTileAreConnected(tileToCheck:int, mapToCheck:Array) -> Array:
+	var a := mapToCheck.duplicate(true)
+	var sectionsByTile = getSectionsOfACertainTile(tileToCheck, mapToCheck)
+	var i := 0 
+	for section in sectionsByTile:
+		if i < sectionsByTile.size()-1:
+			var points := closestPointsBetweenSections( sectionsByTile[i], sectionsByTile[i+1]  )
+			var point1 :Vector2= points[0]
+			var point2 :Vector2= points[1]
+			a = drawLine( point1, point2, 2, 200, tileToCheck, a )
+		else:
+			break
+		i += 1
+	if sectionsByTile.size() > 1:
+		print("these are not connected")
+		for section in sectionsByTile:
+			pass
+	return a 
+	
+# Function to calculate the closest points between two sections
+func closestPointsBetweenSections(section1: Array, section2: Array) -> Array:
+	var min_distance = INF
+	var closest_pair = [Vector2(), Vector2()]
+
+	for point1 in section1:
+		for point2 in section2:
+			var dist = distance(point1, point2)
+			if dist < min_distance:
+				min_distance = dist
+				closest_pair[0] = point1
+				closest_pair[1] = point2
+
+	return closest_pair
+
+
+# Function to calculate the centroid of a section
+func calculateCentroid(section: Array) -> Vector2:
+	var sum_x = 0
+	var sum_y = 0
+	for pos in section:
+		sum_x += pos.x
+		sum_y += pos.y
+	return Vector2(sum_x / section.size(), sum_y / section.size())
 
 
 # ######################################## #

@@ -6,7 +6,7 @@ enum TILES { WALL, FLOOR }
 var mgh: MapGenHandler = MapGenHandler.new()
 
 # Function to generate an interesting map
-func generateBlobbyMap(width: int, height: int) -> Array:
+func generateBlobbyMap(width: int, height: int, isVeryBlobby:=false) -> Array:
 	randomize()
 	var map = []
 
@@ -15,7 +15,10 @@ func generateBlobbyMap(width: int, height: int) -> Array:
 	map = mgh.applyStochasticCellularAutomota(map, TILES.FLOOR, 0.2)
 	map = mgh.applyCellularAutomata(3, TILES.FLOOR, TILES.WALL, map)
 	map = mgh.applyErosion(2, TILES.FLOOR, TILES.WALL, map)
-	map = mgh.applyConnectionsToAllSections(1, TILES.FLOOR, map)
+	if isVeryBlobby:
+		map = mgh.applyConnectionsToAllSections(2, TILES.FLOOR, map)
+	else:
+		map = mgh.applyConnectionToClosestSections(2, 3, TILES.FLOOR, map)
 	map = mgh.drawBorder(TILES.WALL, map)
 	return map
 
@@ -64,6 +67,9 @@ func lotsOfWalks( width:int, height:int ) -> Array:
 	map = mgh.applyConnectionsToAllSections(2, TILES.FLOOR, map)
 		
 	return map
+
+
+
 
 func createComplexMap(width: int, height: int) -> Array:
 	var map = mgh.generateBlankMap(height, width, TILES.WALL)
