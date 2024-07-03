@@ -9,7 +9,9 @@ enum TILES { WALL, FLOOR, INTEREST, EXTRA }
 var wallTile := TILES.WALL
 var floorTile := TILES.FLOOR
 
-
+func _ready() -> void:
+	randomize()
+	setFastNoiseLiteSeed(randi())
 
 # ######################################## #
 #
