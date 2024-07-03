@@ -19,7 +19,7 @@ func generateBlobbyMap(width: int, height: int, isVeryBlobby:=false) -> Array:
 		map = mgh.applyConnectionsToAllSections(2, TILES.FLOOR, map)
 	else:
 		map = mgh.applyConnectionToClosestSections(2, 3, TILES.FLOOR, map)
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	return map
 
 func boxyMap(width:int, height:int) -> Array:
@@ -29,7 +29,7 @@ func boxyMap(width:int, height:int) -> Array:
 		var sizeOfBox := randi_range(5,10)
 		map = mgh.drawBox( start_pos, sizeOfBox, TILES.FLOOR, map )
 	map = mgh.applyConnectionsToAllSections(2, TILES.FLOOR, map)
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	return map
 
 
@@ -41,7 +41,7 @@ func circlyMap(width:int, height:int) -> Array:
 		map = mgh.drawCircle( start_pos, radius, TILES.FLOOR, map )
 	map = mgh.applyStochasticCellularAutomota(map, TILES.FLOOR, randf() )
 	map = mgh.applyConnectionsToAllSections(2, TILES.FLOOR, map)
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	return map
 
 func circleArena(width:int, height:int) -> Array:
@@ -80,9 +80,9 @@ func createComplexMap(width: int, height: int) -> Array:
 	var start_pos = mgh.getARandomPointInMap(map)
 	var end_pos = mgh.getARandomPointInMap(map)
 	#map = mgh.drawRandomWalk(start_pos, 100, TILES.FLOOR, map)
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	map = mgh.applyConnectionsToAllSections(1, TILES.FLOOR, map)
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	
 	prints("FreqVal: ", freqVal)
 	prints("ThresholdVal: ", thresholdVal)
@@ -100,9 +100,9 @@ func createTunnelFilledMap(width: int, height: int) -> Array:
 		var end_pos = mgh.getARandomPointInMap(map)
 		map = mgh.drawRandomWalk(start_pos, 100, TILES.FLOOR, 2, map)
 	
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	map = mgh.applyConnectionsToAllSections(1, TILES.FLOOR, map)
-	map = mgh.drawBorder(TILES.WALL, map)
+	map = mgh.drawBorder(3, TILES.WALL, map)
 	
 	prints("FreqVal: ", freqVal)
 	prints("ThresholdVal: ", thresholdVal)

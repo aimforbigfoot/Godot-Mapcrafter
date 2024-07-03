@@ -5,7 +5,7 @@ extends Node
 class_name MapGenHandler
 var fnl := FastNoiseLite.new()
 
-enum TILES { WALL, FLOOR, INTEREST }
+enum TILES { WALL, FLOOR, INTEREST, EXTRA }
 var wallTile := TILES.WALL
 var floorTile := TILES.FLOOR
 
@@ -245,21 +245,29 @@ func drawBox(startPoint:Vector2i, size:int,  cellToSet:int, map:Array) -> Array:
 		for x in range( -size+startPoint.x, size+1+startPoint.x ):
 			a = setCell(x,y, cellToSet, a)
 	return a 
-
-# ensures that a map will always have walls, is an optional and opininated function
-# this does not need to be used at 
-func drawBorder(cellToSet:int, map:Array) -> Array:
+func drawBorder(border_size: int, cellToSet: int, map: Array) -> Array:
 	var heightAndWidth := getMapHeightAndWidth(map)
-	var height :int= heightAndWidth[0]
-	var width :int= heightAndWidth[1]
+	var height: int = heightAndWidth[0]
+	var width: int = heightAndWidth[1]
 	var a := map.duplicate(true)
-	for y in height:
-		a[y][0] = cellToSet
-		a[y][width-1] = cellToSet
-	for x in width:
-		a[0][x] = cellToSet
-		a[height-1][x] = cellToSet
-	return a 
+	
+	for y in range(height):
+		for i in range(border_size):
+			if y < height:
+				if 0 + i < width:
+					a[y][0 + i] = cellToSet
+				if width - 1 - i >= 0:
+					a[y][width - 1 - i] = cellToSet
+
+	for x in range(width):
+		for i in range(border_size):
+			if 0 + i < height:
+				a[0 + i][x] = cellToSet
+			if height - 1 - i >= 0:
+				a[height - 1 - i][x] = cellToSet
+
+	return a
+
 func drawRandomWalk(startPos: Vector2i, steps: int, cellToSet: int, thickness: int, map: Array) -> Array:
 	var a = map.duplicate(true)
 	var currPos = startPos
@@ -610,6 +618,120 @@ func calculateCentroid(section: Array) -> Vector2:
 	return Vector2(sum_x / section.size(), sum_y / section.size())
 
 
+func totalDistance(selected_points: Array) -> float:
+	var total = 0.0
+	for i in range(selected_points.size()):
+		for j in range(i + 1, selected_points.size()):
+			total += distance(selected_points[i], selected_points[j])
+	return total
+
+func findSmallestSquare(points: Array) -> Array:
+	if points.size() == 0:
+		return [0,0]
+
+	var min_x :int= points[0].x
+	var max_x :int= points[0].x
+	var min_y :int= points[0].y
+	var max_y :int= points[0].y
+
+	for point in points:
+		if point.x < min_x:
+			min_x = point.x
+		if point.x > max_x:
+			max_x = point.x
+		if point.y < min_y:
+			min_y = point.y
+		if point.y > max_y:
+			max_y = point.y
+
+	var width = max_x - min_x + 1
+	var height = max_y - min_y + 1
+	return [width, height]
+
+# Function to find the most N distant points in a section using Farthest Point Sampling
+func findMostDistantPoints(section: Array, numPoints: int) -> Array:
+	if section.size() <= numPoints:
+		return section  # If there are fewer points than numPoints, return all points
+
+	var selectedPoints = []
+	var distances = []
+
+	# Start with an arbitrary point (first point)
+	selectedPoints.append(section[0])
+
+	# Initialize distances from the first point to all other points
+	for point in section:
+		distances.append(distance(section[0], point))
+
+	# Select the farthest point in each iteration
+	for smth in range(numPoints - 1):
+		var maxDistance = -1
+		var maxIndex = -1
+
+		# Find the point with the maximum distance to the selected points
+		for i in range(section.size()):
+			if distances[i] > maxDistance:
+				maxDistance = distances[i]
+				maxIndex = i
+
+		# Add the farthest point to the selected points
+		selectedPoints.append(section[maxIndex])
+
+		# Update the distances to the new selected point
+		for i in range(section.size()):
+			distances[i] = min(distances[i], distance(section[maxIndex], section[i]))
+
+	return selectedPoints
+
+
+# Function to find the minimum distance of a point to any wall in the map
+func minDistanceToWall(point: Vector2, walls: Array) -> float:
+	var minDistance = INF
+	for wall in walls:
+		var dist = distance(point, wall)
+		if dist < minDistance:
+			minDistance = dist
+	return minDistance
+
+# Function to find the most N distant points in a section using Farthest Point Sampling, ensuring points are not too near walls
+func findMostDistantPointsWithPaddingFromWall(section: Array, walls: Array, num_points: int, min_dist_from_wall: float) -> Array:
+	if section.size() <= num_points:
+		return section  # If there are fewer points than num_points, return all points
+
+	var selected_points = []
+	var distances = []
+	var valid_points = []
+
+	# Filter points that are not too near a wall
+	for point in section:
+		if minDistanceToWall(point, walls) >= min_dist_from_wall:
+			valid_points.append(point)
+
+	if valid_points.size() == 0:
+		return []  # No valid points found
+
+	# Start with an arbitrary point (first point)
+	selected_points.append(valid_points.pop_back())
+
+	# Initialize distances from the first point to all other points
+	for point in valid_points:
+		distances.append({"point": point, "distance": distance(selected_points[0], point)})
+
+	# Select the farthest point in each iteration
+	for xxxxx in range(num_points - 1):
+		if distances.size() == 0:
+			break
+
+		# Find the point with the maximum distance
+		distances.sort_custom(func(a, b): return a["distance"] > b["distance"])
+		var farthest = distances.pop_front()
+		selected_points.append(farthest["point"])
+
+		# Update the distances to the new selected point
+		for i in range(distances.size()):
+			distances[i]["distance"] = min(distances[i]["distance"], distance(farthest["point"], distances[i]["point"]))
+
+	return selected_points
 # ######################################## #
 #
 #
