@@ -1,6 +1,27 @@
- #Welcome to the MapGenHandler V1
-# This library helps you generate a bunch of 2d array maps in a simple binary fashion with walls and floors
-# It is highly customizable and flexible and can be used to generate a whole host of maps 
+# -------------------------------------------------------------------------------------------------
+#
+#                                   MapGenHandler V1
+#
+#    Welcome to the MapGenHandler, your comprehensive toolkit for generating 2D grid-based maps.
+#    This script provides a robust set of tools for creating maps with customizable tiles, including
+#    walls, floors, areas of interest, and more. Designed with flexibility and extensibility in mind,
+#    it supports a variety of map generation and manipulation techniques.
+#
+#    Key Features:
+#    - A wide range of algorithms to define and modify map sections based on various patterns and rules.
+#    - Tools to mark areas of interest and define sections using advanced algorithms.
+#    - Capable of being thread-safe map generation to handle large map sizes in the background.
+#
+#    This script is dedicated to managing map data through a 2D array of integers representing different
+#    tile types. It's optimized for performance in games or simulations where dynamic map generation is
+#    crucial.
+#
+#    The MapGenHandler can seamlessly integrate into your projects, providing the backbone for any
+#    system that requires map generation and real-time modifications.
+#
+# -------------------------------------------------------------------------------------------------
+
+
 extends Node
 class_name MapGenHandler
 var fnl := FastNoiseLite.new()
@@ -95,7 +116,7 @@ func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, m
 	fnl.frequency = freqVal
 	for y in map.size():
 		for x in map[y].size():
-			var fnlNoise :float= abs(fnl.get_noise_2d( x,y  ))
+			var fnlNoise :float= abs(fnl.get_noise_2d( x,y  )) * 10
 			if fnlNoise < thresholdValue:
 				a = setCell(x,y, cellToSet, a)
 	return a
@@ -210,7 +231,7 @@ func applyExpandedTiles(expansionSize: int, tileToSet: int, map: Array) -> Array
 					for dy in range(-expansionSize, expansionSize + 1):
 						var newX = x + dx
 						var newY = y + dy
-						setCell(newX, newY, tileToSet, map_copy)
+						map_copy = setCell(newX, newY, tileToSet, map_copy)
 
 	return map_copy
 
@@ -561,6 +582,7 @@ func getLargestSectionOfTileType(tile_type: int, map: Array) -> Array:
 			largest_section = section
 			max_size = section.size()
 	return largest_section
+
 func findCenterTileGivenASection(section: Array) -> Vector2:
 	if section.size() == 0:
 		return Vector2(-1, -1)  # Return an invalid position if the section is empty
@@ -573,7 +595,6 @@ func findCenterTileGivenASection(section: Array) -> Vector2:
 	var center_y = int(round(float(sum_y) / section.size()))
 
 	return Vector2(center_x, center_y)
-
 
 func checkAndConnectIfAllSectionsOfACertainTileAreConnected(tileToCheck:int, mapToCheck:Array) -> Array:
 	var a := mapToCheck.duplicate(true)
@@ -609,7 +630,6 @@ func closestPointsBetweenSections(section1: Array, section2: Array) -> Array:
 
 	return closest_pair
 
-
 # Function to calculate the centroid of a section
 func calculateCentroid(section: Array) -> Vector2:
 	var sum_x = 0
@@ -618,7 +638,6 @@ func calculateCentroid(section: Array) -> Vector2:
 		sum_x += pos.x
 		sum_y += pos.y
 	return Vector2(sum_x / section.size(), sum_y / section.size())
-
 
 func totalDistance(selected_points: Array) -> float:
 	var total = 0.0
@@ -684,7 +703,6 @@ func findMostDistantPoints(section: Array, numPoints: int) -> Array:
 			distances[i] = min(distances[i], distance(section[maxIndex], section[i]))
 
 	return selectedPoints
-
 
 # Function to find the minimum distance of a point to any wall in the map
 func minDistanceToWall(point: Vector2, walls: Array) -> float:

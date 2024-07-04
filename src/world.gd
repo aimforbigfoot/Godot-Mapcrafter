@@ -1,17 +1,19 @@
 extends Node2D
 var count := 0
-const WIDTH := 100
-const HEIGHT := 70
+const WIDTH := 50
+const HEIGHT := 50
 var mgh := MapGenHandler.new()
 var mgm := MapGenManager.new()
 var sot := []
 
 
 func _ready() -> void:
+	mgm.mapGenDone.connect( mapGenDone )
+	mgm.genSimpleMap()
 	randomize()
-	mgm.setWidthAndHeight( WIDTH, HEIGHT )
-	mgm.startThread()
 
+func mapGenDone ( )-> void:
+	print("map gen is done")
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("r"):
