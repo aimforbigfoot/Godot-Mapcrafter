@@ -826,6 +826,20 @@ func generateCheckerboardMap(width: int, height: int, tile_type1: int, tile_type
 			row.append(tile_type1 if (checker_x + checker_y) % 2 == 0 else tile_type2)
 		map.append(row)
 	return map
-# TO DO
-# I need functiosn that go into a random section of tile and place a specific feature into it
-# perhaps a function that only goes into the top left and then youd apply radial symmetry to that stuff
+
+func generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, topLeftPosOfBox: Vector2, boxWidth: int, boxHeight: int) -> Array:
+	# Generate the blank map
+	var map = []
+	for y in range(height):
+		var row = []
+		for x in range(width):
+			row.append(mapTile)
+		map.append(row)
+	
+	# Place the box/room in the map
+	for y in range(topLeftPosOfBox.y, topLeftPosOfBox.y + boxHeight):
+		for x in range(topLeftPosOfBox.x, topLeftPosOfBox.x + boxWidth):
+			map = setCell( x, y, boxTile, map )
+	
+	return map
+

@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://6y4bxlyac4xi"]
+
+[ext_resource type="Script" path="res://src/testing/cam/moving_camera.gd" id="1_3suxh"]
+
+[node name="movingCamera" type="Node2D"]
+script = ExtResource("1_3suxh")
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(0.5, 0.5)
