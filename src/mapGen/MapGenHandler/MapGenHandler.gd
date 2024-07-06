@@ -417,6 +417,8 @@ func getARandomPointInMap(map:Array) -> Vector2i:
 	return Vector2i( 
 		randi_range( 0, width ), 
 		randi_range(0, height) )
+func getARandomTileByTileType( tileType:int, map:Array ) -> Array:
+	reutnr 
 func setFastNoiseLiteSeed(_seed:int) -> void:
 	fnl.seed = _seed
 	# Function to calculate distance between two points
