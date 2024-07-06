@@ -1,16 +1,21 @@
 extends Node2D
 var count := 0
-const WIDTH := 50
-const HEIGHT := 50
+const WIDTH := 90
+const HEIGHT := 40
 var mgh := MapGenHandler.new()
-var mgm := MapGenManager.new()
 var sot := []
 
 
 func _ready() -> void:
-	mgm.mapGenDone.connect( mapGenDone )
-	mgm.genSimpleMap()
 	randomize()
+	sot = mgh.generateBlankMap(HEIGHT,WIDTH, mgh.wallTile)
+	for i in 16:
+		sot = mgh.drawBox( mgh.getARandomPointInMap(sot), randi_range(1,3), mgh.floorTile, sot )
+	sot = mgh.applyLinearConnectionToSections(2,mgh.floorTile,sot)
+	sot = mgh.applyRadialSymmetry(sot)
+	sot = mgh.applyLinearConnectionToSections(2,mgh.floorTile,sot)
+	mgh.printMap(sot )
+		
 
 func mapGenDone ( )-> void:
 	print("map gen is done")

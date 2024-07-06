@@ -218,6 +218,26 @@ func applyConnectionToClosestSections(corridor_size: int, max_connections: int, 
 				connections += 1
 
 	return map_copy
+func applyLinearConnectionToSections(corridor_size: int, tile_type: int, map: Array) -> Array:
+	var sections = getSections(map)
+	var map_copy = map.duplicate(true)
+
+	# Calculate centroids for all sections
+	var centroids = []
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+
+	# Sort centroids based on their x-coordinate (or y-coordinate) to ensure a linear path
+	centroids.sort_custom(func(a, b): return a.x < b.x)
+
+	# Connect sections linearly
+	for i in range(centroids.size() - 1):
+		var start = centroids[i]
+		var end = centroids[i + 1]
+		map_copy = drawCorridor(start, end, tile_type, corridor_size, map_copy)
+
+	return map_copy
+
 
 func applyExpandedTiles(expansionSize: int, tileToSet: int, map: Array) -> Array:
 	var map_copy = map.duplicate(true)
@@ -417,8 +437,22 @@ func getARandomPointInMap(map:Array) -> Vector2i:
 	return Vector2i( 
 		randi_range( 0, width ), 
 		randi_range(0, height) )
-func getARandomTileByTileType( tileType:int, map:Array ) -> Array:
-	reutnr 
+func getARandomTileByTileType( tileToGet:int, map:Array ) -> Vector2:
+	var allTilesOfAType := getArrayOfAllTilesOfOneType(tileToGet, map)
+	return allTilesOfAType[ floor( randf() * allTilesOfAType.size() ) ]
+
+func getArrayOfAllTilesOfOneType(tileToGet:int, map:Array) -> Array:
+	var b := []
+	var y := 0
+	for row in map:
+		var x := 0 
+		for cell in row:
+			if getCell( x,y, map ) == tileToGet:
+				b.append( Vector2(x,y) )
+			x += 1
+		y += 1
+	return b
+	
 func setFastNoiseLiteSeed(_seed:int) -> void:
 	fnl.seed = _seed
 	# Function to calculate distance between two points

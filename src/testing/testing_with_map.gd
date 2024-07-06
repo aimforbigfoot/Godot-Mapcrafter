@@ -34,7 +34,7 @@ func genMap() -> void:
 	poi = mgh.findMostDistantPoints( mgh.getLargestSectionOfTileType(mgh.floorTile, mapToUse), 32 )
 	print("found points of interest")
 	for i in range(0,33):
-		rpoints.append( mgh.getARandomPointInMap() )
+		rpoints.append( mgh.getARandomTileByTileType( mgh.floorTile, mapToUse  ) )
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
 func setMapToTileset() -> void:
@@ -52,5 +52,6 @@ func setMapToTileset() -> void:
 		y += 1
 	for point in poi:
 		$TileMap.set_cell( 0, Vector2i(point.x,point.y), 0,Vector2i(4,2)  )
-		
+	for point in rpoints:
+		$TileMap.set_cell( 0, Vector2i(point.x,point.y), 0,Vector2i(0,9)  )
 
