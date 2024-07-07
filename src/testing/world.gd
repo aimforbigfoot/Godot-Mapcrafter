@@ -10,10 +10,8 @@ func _ready() -> void:
 	randomize()
 	sot = mgh.generateBlankMap(HEIGHT,WIDTH, mgh.wallTile)
 	for i in 16:
-		sot = mgh.drawBox( mgh.getARandomPointInMap(sot), randi_range(1,3), mgh.floorTile, sot )
-	sot = mgh.applyLinearConnectionToSections(2,mgh.floorTile,sot)
-	sot = mgh.applyRadialSymmetry(sot)
-	sot = mgh.applyLinearConnectionToSections(2,mgh.floorTile,sot)
+		sot = mgh.drawCircle( mgh.getARandomPointInMap(sot), randi_range(5,10), mgh.floorTile, sot )
+	sot = mgh.applyLinearConnectionToSections(1,mgh.floorTile,sot)
 	mgh.printMap(sot )
 		
 
