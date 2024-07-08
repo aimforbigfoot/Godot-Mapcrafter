@@ -30,8 +30,6 @@ func genMap() -> void:
 	print("made blank map")
 	mapToUse = mgh.applyFastPerlinNoise( 0.01, 0.5, mgh.floorTile, mapToUse )
 	print("applied noise")
-	#mapToUse = mgh.applyStochasticCellularAutomota( mapToUse, mgh.floorTile, 0.2 )
-	#print("apply random Noise")
 	mapToUse = mgh.drawBorder( 2, mgh.wallTile, mapToUse )
 	print("drew border, done map")
 	mapToUse = mgh.applyLinearConnectionToSections(2, mgh.floorTile, mapToUse)

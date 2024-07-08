@@ -47,7 +47,7 @@ func _ready() -> void:
 # ######################################## #
 
 
-func applyStochasticCellularAutomota(map:Array, cellToSet:int,  randomChance:float=0.5) -> Array:
+func applyStochasticCellularAutomota(randomChance:float, cellToSet:int, map:Array, ) -> Array:
 	var mapCopy := map.duplicate(true)
 	var y := 0
 	for row in map:
@@ -393,8 +393,16 @@ func drawToFillInPatchesOfASizeByTileType(min_size: int, cellToCheck:int, cellTo
 				if section.size() < min_size:
 					for pos in section:
 						map_copy = setCell( pos.x, pos.y, cellToFillWith, map_copy )
-
 	return map_copy
+
+func drawRandomWalksInsideLargeSectionsOfARandomTileType( timesToPlaceAWalk:int, 
+					walkCount:int, 
+					tileTypeOfSection:int, 
+					tileTypeToPlace:int, 
+					map:Array 
+			) -> Array:
+	var a := map.duplicate( true )
+	return a
 
 # ######################################## #
 #
