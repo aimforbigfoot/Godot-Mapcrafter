@@ -13,7 +13,7 @@ func _ready() -> void:
 		sot = mgh.drawCircle( mgh.getARandomPointInMap(sot), randi_range(5,10), mgh.floorTile, sot )
 	sot = mgh.applyLinearConnectionToSections(1,mgh.floorTile,sot)
 	mgh.printMap(sot )
-		
+	
 
 func mapGenDone ( )-> void:
 	print("map gen is done")
