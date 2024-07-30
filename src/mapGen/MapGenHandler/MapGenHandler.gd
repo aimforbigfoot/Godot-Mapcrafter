@@ -47,26 +47,18 @@ func _ready() -> void:
 # ######################################## #
 
 
-func applyStochasticCellularAutomota(randomChance:float, cellToSet:int, map:Array, ) -> Array:
+func applyRandomCellsToCertainCellType(randomChance:float, cellToSet:int, map:Array, ) -> Array:
 	var mapCopy := map.duplicate(true)
 	var y := 0
 	for row in map:
 		var x:= 0 
 		for cell in row:
-			if cell == cellToSet:
-				if randf() < randomChance:
-					for dx in range(-1,2):
-						for dy in range(-1,2):
-							if (dx != 0 and dy != 0) or ( dx == 0 or dy == 0 ) :
-								var accX :int= x + dx 
-								var accY :int= y + dy
-								if getCell(accX, accY, map) != cellToSet:
-									mapCopy = setCell(accX,accY, cellToSet, map)
+			if randf() < randomChance:
+				if getCell(x, y, map) != cellToSet:
+					mapCopy = setCell(x,y, cellToSet, map)
 			x+= 1
 		y+= 1
 	return mapCopy
-
-# this will only copy top left and place it around
 func applyRadialSymmetry(map: Array) -> Array:
 	var map_copy = map.duplicate(true)
 	var height = map.size()
@@ -110,6 +102,17 @@ func applyMirrorHorizontal(map: Array, flipFromTopToBottom: bool=true) -> Array:
 				var value = map[y][x]
 				map_copy[height - 1 - y][x] = value  # Reflect across the horizontal centerline
 	return map_copy
+func applyCellularNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map:Array ) -> Array:
+	var a := map.duplicate(true)
+	fnl.frequency = freqVal
+	fnl.noise_type = FastNoiseLite.TYPE_CELLULAR
+	fnl.fractal_type = FastNoiseLite.FRACTAL_PING_PONG
+	for y in map.size():
+		for x in map[y].size():
+			var fnlNoise : float = abs( fnl.get_noise_2d( x, y ) ) * 2
+			if fnlNoise < thresholdValue:
+				a = setCell( x, y, cellToSet, a )
+	return a 
 func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map:Array ) -> Array:
 	var a := map.duplicate(true)
 	fnl.noise_type = FastNoiseLite.TYPE_PERLIN
@@ -221,21 +224,17 @@ func applyConnectionToClosestSections(corridor_size: int, max_connections: int, 
 func applyLinearConnectionToSections(corridor_size: int, tile_type: int, map: Array) -> Array:
 	var sections = getSections(map)
 	var map_copy = map.duplicate(true)
-
 	# Calculate centroids for all sections
 	var centroids = []
 	for section in sections:
 		centroids.append(calculateCentroid(section))
-
 	# Sort centroids based on their x-coordinate (or y-coordinate) to ensure a linear path
 	centroids.sort_custom(func(a, b): return a.x < b.x)
-
 	# Connect sections linearly
 	for i in range(centroids.size() - 1):
 		var start = centroids[i]
 		var end = centroids[i + 1]
 		map_copy = drawCorridor(start, end, tile_type, corridor_size, map_copy)
-
 	return map_copy
 
 
@@ -254,6 +253,25 @@ func applyExpandedTiles(expansionSize: int, tileToSet: int, map: Array) -> Array
 						map_copy = setCell(newX, newY, tileToSet, map_copy)
 
 	return map_copy
+
+
+func applyConwaysGameOfLife(map: Array, generations: int, alive_tile: int, dead_tile: int) -> Array:
+	var current_map := map.duplicate(true)
+	var height :int= map.size()
+	var width :int= map[0].size()
+	
+	for generation in range(generations):
+		var new_map := current_map.duplicate(true)
+		for y in range(height):
+			for x in range(width):
+				var alive_neighbors := countNeighborsOfCertainCellType(x, y, alive_tile, current_map)
+				if current_map[y][x] == alive_tile:
+					new_map[y][x] = alive_tile if alive_neighbors in range(2, 4) else dead_tile
+				else:
+					new_map[y][x] = alive_tile if alive_neighbors == 3 else dead_tile
+		current_map = new_map
+	
+	return current_map
 
 # ######################################## #
 #
@@ -796,6 +814,39 @@ func findMostDistantPointsWithPaddingFromWall(section: Array, walls: Array, num_
 			distances[i]["distance"] = min(distances[i]["distance"], distance(farthest["point"], distances[i]["point"]))
 
 	return selected_points
+
+func connectClosestSections(tile_type: int, connection_tile: int, map: Array) -> Array:
+	var sections = getSectionsOfACertainTile(tile_type, map)
+	var map_copy = map.duplicate(true)
+	var connections_made = {}
+	
+	# Calculate centroids for all sections
+	var centroids = []
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+	
+	# Connect sections
+	for i in range(centroids.size()):
+		var closest_distance = INF
+		var closest_centroid_index = -1
+		
+		# Find the closest centroid to the current one
+		for j in range(centroids.size()):
+			if i != j:
+				var dist = distance(centroids[i], centroids[j])
+				if dist < closest_distance:
+					closest_distance = dist
+					closest_centroid_index = j
+		
+		if closest_centroid_index != -1:
+			var connection_key = min(i, closest_centroid_index) * 1000 + max(i, closest_centroid_index)  # Unique key for each pair
+			if not connections_made.has(connection_key):
+				map_copy = drawCorridor(centroids[i], centroids[closest_centroid_index], connection_tile, 1, map_copy)
+				connections_made[connection_key] = true
+
+	return map_copy
+
+
 # ######################################## #
 #
 #

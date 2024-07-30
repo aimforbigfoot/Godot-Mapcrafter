@@ -8,10 +8,13 @@ var sot := []
 
 func _ready() -> void:
 	randomize()
+	mgh.setFastNoiseLiteSeed(  randi()  )
 	sot = mgh.generateBlankMap(HEIGHT,WIDTH, mgh.wallTile)
-	for i in 16:
-		sot = mgh.drawCircle( mgh.getARandomPointInMap(sot), randi_range(5,10), mgh.floorTile, sot )
-	sot = mgh.applyLinearConnectionToSections(1,mgh.floorTile,sot)
+	sot = mgh.applyRandomCellsToCertainCellType(0.6, mgh.floorTile, sot)
+	sot = mgh.applyConwaysGameOfLife(sot, 10, mgh.floorTile, mgh.wallTile)
+	sot = mgh.applyExpandedTiles(1, mgh.floorTile, sot)
+	sot = mgh.connectClosestSections( mgh.floorTile, mgh.floorTile, sot )
+	sot = mgh.applyLinearConnectionToSections(1, mgh.floorTile, sot)
 	mgh.printMap(sot )
 	
 
