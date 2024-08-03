@@ -165,6 +165,52 @@ func applyErosion(iterations: int, cellToApplyWith:int, cellToGetRidOf:int, map:
 					if neighbors >= neighborsCount:
 						map_copy[y][x] = cellToApplyWith
 	return map_copy
+#this may not seem to do anything cuz this will truly just grab a random section and turn all the tiles
+# in that section into another tile, 
+func applySpecificTileToARandomSetOfTiles(cellToGetSelectionOf:int, cellToTurnInto:int, map:Array) -> Array:
+	var a := map.duplicate(true)
+	var section :=  getARandomSectionByTile(cellToGetSelectionOf, map)
+	for cell in section:
+		a = setCell(cell.x, cell.y, cellToTurnInto, a)
+	return a
+func applyExpandedTiles(expansionSize: int, tileToSet: int, map: Array) -> Array:
+	var map_copy = map.duplicate(true)
+	var width = map[0].size()
+	var height = map.size()
+
+	for y in range(height):
+		for x in range(width):
+			if map[y][x] == tileToSet:
+				for dx in range(-expansionSize, expansionSize + 1):
+					for dy in range(-expansionSize, expansionSize + 1):
+						var newX = x + dx
+						var newY = y + dy
+						map_copy = setCell(newX, newY, tileToSet, map_copy)
+
+	return map_copy
+func applyConwaysGameOfLife(map: Array, generations: int, alive_tile: int, dead_tile: int) -> Array:
+	var current_map := map.duplicate(true)
+	var height :int= map.size()
+	var width :int= map[0].size()
+	
+	for generation in range(generations):
+		var new_map := current_map.duplicate(true)
+		for y in range(height):
+			for x in range(width):
+				var alive_neighbors := countNeighborsOfCertainCellType(x, y, alive_tile, current_map)
+				if current_map[y][x] == alive_tile:
+					new_map[y][x] = alive_tile if alive_neighbors in range(2, 4) else dead_tile
+				else:
+					new_map[y][x] = alive_tile if alive_neighbors == 3 else dead_tile
+		current_map = new_map
+	
+	return current_map
+
+
+
+# ###########################################
+# Connections functions 
+
 # Function to connect all sections
 func applyConnectionsToAllSections(connectionSize:int, tile_type: int, map: Array) -> Array:
 	var sections = getSections(map)
@@ -176,16 +222,6 @@ func applyConnectionsToAllSections(connectionSize:int, tile_type: int, map: Arra
 	for i in range(centroids.size() - 1):
 		map_copy = drawCorridor(centroids[i], centroids[i + 1], tile_type, connectionSize, map_copy)
 	return map_copy
-#this may not seem to do anything cuz this will truly just grab a random section and turn all the tiles
-# in that section into another tile, 
-func applySpecificTileToARandomSetOfTiles(cellToGetSelectionOf:int, cellToTurnInto:int, map:Array) -> Array:
-	var a := map.duplicate(true)
-	var section :=  getARandomSectionByTile(cellToGetSelectionOf, map)
-	for cell in section:
-		a = setCell(cell.x, cell.y, cellToTurnInto, a)
-	return a
-
-
 func applyConnectionToClosestSections(corridor_size: int, max_connections: int, tile_type: int, map: Array) -> Array:
 	var sections = getSections(map)
 	var map_copy = map.duplicate(true)
@@ -236,42 +272,109 @@ func applyLinearConnectionToSections(corridor_size: int, tile_type: int, map: Ar
 		var end = centroids[i + 1]
 		map_copy = drawCorridor(start, end, tile_type, corridor_size, map_copy)
 	return map_copy
-
-
-func applyExpandedTiles(expansionSize: int, tileToSet: int, map: Array) -> Array:
+func applyConnectionWithMST(tile_type: int, connection_tile: int, map: Array) -> Array:
+	var sections = getSectionsOfACertainTile(tile_type, map)
 	var map_copy = map.duplicate(true)
-	var width = map[0].size()
-	var height = map.size()
+	var connections_made = {}
 
-	for y in range(height):
-		for x in range(width):
-			if map[y][x] == tileToSet:
-				for dx in range(-expansionSize, expansionSize + 1):
-					for dy in range(-expansionSize, expansionSize + 1):
-						var newX = x + dx
-						var newY = y + dy
-						map_copy = setCell(newX, newY, tileToSet, map_copy)
+	# Calculate centroids for all sections
+	var centroids = []
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+
+	# Use Kruskal's algorithm to create an MST
+	var edges = []
+	for i in range(centroids.size()):
+		for j in range(i + 1, centroids.size()):
+			var dist = distance(centroids[i], centroids[j])
+			edges.append({"dist": dist, "i": i, "j": j})
+	edges.sort_custom(func(a, b): return a["dist"] < b["dist"])
+
+	var parents = []
+	for i in range(centroids.size()):
+		parents.append(i)
+
+	var rank = []
+	for i in range(centroids.size()):
+		rank.append(0)
+
+	var e = 0
+	for edge in edges:
+		var x = find(parents, edge["i"])
+		var y = find(parents, edge["j"])
+
+		if x != y:
+			map_copy = drawCorridor(centroids[edge["i"]], centroids[edge["j"]], connection_tile, 1, map_copy)
+			union(parents, rank, x, y)
+			e += 1
+			if e == centroids.size() - 1:
+				break
+
+	return map_copy
+func applyConnectionsWithRandomWalks(tile_type: int, connection_tile: int, steps: int, map: Array) -> Array:
+	var sections = getSectionsOfACertainTile(tile_type, map)
+	var map_copy = map.duplicate(true)
+
+	# Calculate centroids for all sections
+	var centroids = []
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+
+	# Connect centroids using random walks
+	for i in range(centroids.size() - 1):
+		var start = centroids[i]
+		var end = centroids[i + 1]
+		map_copy = drawRandomWalk(start, steps, connection_tile, 1, map_copy)
+
+	return map_copy
+#func applyConnectionsWithDelaunay(tile_type: int, connection_tile: int, map: Array) -> Array:
+	#var sections = getSectionsOfACertainTile(tile_type, map)
+	#var map_copy = map.duplicate(true)
+	#var centroids = []
+	#for section in sections:
+		#centroids.append(calculateCentroid(section))
+#
+	## Create a set of points for Delaunay triangulation
+	#var delaunay_points = []
+	#for centroid in centroids:
+		#delaunay_points.append([centroid.x, centroid.y])
+#
+	## Perform Delaunay triangulation
+	#var delaunay = Delaunay.new()
+	#var triangles = delaunay.triangulate(delaunay_points)
+#
+	## Connect centroids using the edges of the triangulation
+	#for triangle in triangles:
+		#var p1 = centroids[triangle[0]]
+		#var p2 = centroids[triangle[1]]
+		#var p3 = centroids[triangle[2]]
+#
+		#map_copy = drawCorridor(p1, p2, connection_tile, 1, map_copy)
+		#map_copy = drawCorridor(p2, p3, connection_tile, 1, map_copy)
+		#map_copy = drawCorridor(p3, p1, connection_tile, 1, map_copy)
+#
+	#return map_copy
+func applyConnectionsLinearly(tile_type: int, connection_tile: int, map: Array) -> Array:
+	var sections = getSectionsOfACertainTile(tile_type, map)
+	var map_copy = map.duplicate(true)
+	var centroids = []
+	for section in sections:
+		centroids.append(calculateCentroid(section))
+
+	# Sort centroids by their x-coordinate to ensure a linear path
+	centroids.sort_custom(func(a, b): return a.x < b.x)
+
+	# Connect sections linearly
+	for i in range(centroids.size() - 1):
+		var start = centroids[i]
+		var end = centroids[i + 1]
+		map_copy = drawCorridor(start, end, connection_tile, 1, map_copy)
 
 	return map_copy
 
 
-func applyConwaysGameOfLife(map: Array, generations: int, alive_tile: int, dead_tile: int) -> Array:
-	var current_map := map.duplicate(true)
-	var height :int= map.size()
-	var width :int= map[0].size()
-	
-	for generation in range(generations):
-		var new_map := current_map.duplicate(true)
-		for y in range(height):
-			for x in range(width):
-				var alive_neighbors := countNeighborsOfCertainCellType(x, y, alive_tile, current_map)
-				if current_map[y][x] == alive_tile:
-					new_map[y][x] = alive_tile if alive_neighbors in range(2, 4) else dead_tile
-				else:
-					new_map[y][x] = alive_tile if alive_neighbors == 3 else dead_tile
-		current_map = new_map
-	
-	return current_map
+
+
 
 # ######################################## #
 #
@@ -591,6 +694,23 @@ func identifyPointsOfInterestOnMapByTileType( tileToCheck:int,map:Array) -> Arra
 		var centerOfSection := findCenterTileGivenASection( section )
 		setCell( centerOfSection.x, centerOfSection.y, 6, a )
 	return a
+
+func find(parent, i):
+	if parent[i] == i:
+		return i
+	return find(parent, parent[i])
+
+func union(parent, rank, x, y):
+	var xroot = find(parent, x)
+	var yroot = find(parent, y)
+
+	if rank[xroot] < rank[yroot]:
+		parent[xroot] = yroot
+	elif rank[xroot] > rank[yroot]:
+		parent[yroot] = xroot
+	else:
+		parent[yroot] = xroot
+		rank[xroot] += 1
 
 # ######################################## #
 #
