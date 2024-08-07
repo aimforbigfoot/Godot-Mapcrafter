@@ -12,7 +12,7 @@
 #    - Tools to mark areas of interest and define sections using advanced algorithms.
 #    - Capable of being thread-safe map generation to handle large map sizes in the background.
 #
-#    This script is dedicated to managing map data through a 2D array of integers representing different
+#    This script is dedicated to managing	 map data through a 2D array of integers representing different
 #    tile types. It's optimized for performance in games or simulations where dynamic map generation is
 #    crucial.
 #
@@ -812,6 +812,18 @@ func closestPointsBetweenSections(section1: Array, section2: Array) -> Array:
 
 	return closest_pair
 
+func carve_path(x: int, y: int, width, height, wall_tile, floor_tile, path_tile:int, map:Array):
+	map[y][x] = path_tile
+	var directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]
+	directions.shuffle()
+	
+	for dir in directions:
+		var next_x = x + dir[0] * 2
+		var next_y = y + dir[1] * 2
+		if next_x > 0 and next_x < width - 1 and next_y > 0 and next_y < height - 1 and map[next_y][next_x] == wall_tile:
+			map[y + dir[1]][x + dir[0]] = path_tile
+			carve_path(next_x, next_y)
+		
 # Function to calculate the centroid of a section
 func calculateCentroid(section: Array) -> Vector2:
 	var sum_x = 0
@@ -1058,3 +1070,35 @@ func generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, top
 	
 	return map
 
+# Generate a map with a maze-like structure using recursive backtracking
+func generateMazeMap(width: int, height: int, wall_tile: int, path_tile: int) -> Array:
+	var map = generateBlankMap(height, width, wall_tile)
+	var stack = []
+	var start_x = 1
+	var start_y = 1	
+	carve_path(start_x, start_y)
+	return map
+
+# Generate a map with a cellular automata cave-like structure
+func generateCaveMap(width: int, height: int, wall_tile: int, floor_tile: int, initial_chance: float = 0.45, iterations: int = 4) -> Array:
+	var map = generateBlankMap(height, width, floor_tile)
+	
+	# Initialize with random walls
+	for y in range(height):
+		for x in range(width):
+			if randf() < initial_chance:
+				map[y][x] = wall_tile
+	
+	# Apply cellular automata rules
+	for i in range(iterations):
+		var new_map = map.duplicate(true)
+		for y in range(height):
+			for x in range(width):
+				var neighbors = countNeighborsOfCertainCellType(x, y, wall_tile, map)
+				if map[y][x] == wall_tile:
+					new_map[y][x] = wall_tile if neighbors >= 4 else floor_tile
+				else:
+					new_map[y][x] = wall_tile if neighbors >= 5 else floor_tile
+		map = new_map
+	
+	return map
