@@ -1,4 +1,4 @@
-# MapGenHandler V1
+# Godot Mapcrafter
 
 ## Overview
 
