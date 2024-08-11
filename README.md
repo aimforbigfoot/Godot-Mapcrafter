@@ -1,27 +1,21 @@
 # Godot Mapcrafter
-
 ## Overview
+Welcome to the Godot Mapcrafter project, your comprehensive toolkit for generating 2D grid-based maps in Godot. This script provides a robust set of tools for creating maps with customizable tiles, including walls, floors, areas of interest, and more. Designed with flexibility and extensibility in mind, it supports a variety of map generation and manipulation techniques.
 
-Welcome to the **MapGenHandler** project, your comprehensive toolkit for generating 2D grid-based maps in Godot. This script provides a robust set of tools for creating maps with customizable tiles, including walls, floors, areas of interest, and more. Designed with flexibility and extensibility in mind, it supports a variety of map generation and manipulation techniques.
-
-### Key Features
-- **Seamless Integration**: Easily integrates into your projects, providing the backbone for any system that requires map generation and real-time modifications.
-- **Variety of Algorithms**: Define and modify map sections based on various patterns and rules.
-- **Advanced Tools**: Mark areas of interest and define sections using advanced algorithms.
-- **Thread-Safe Map Generation**: Capable of handling large map sizes in the background. (WORKING ON THIS)
-
+## Key Features
+- Seamless Integration: Easily integrates into your projects, providing the backbone for any system that requires map generation and real-time modifications.
+- Variety of Algorithms: Define and modify map sections based on various patterns and rules.
+- Advanced Tools: Mark areas of interest and define sections using advanced algorithms.
+- Thread-Safe Map Generation: Capable of handling large map sizes in the background. 
 ## Getting Started
-
 ### Installation
-
-1. **Download the Script**: Save the script file as `MapGenHandler.gd` in your Godot project's script directory.
-2. **Attach to a Node**: Attach the `MapGenHandler` script to a Node in your Godot scene.
-
+1. Download the Script: Save the script file as MapGenHandler.gd in your Godot project's script directory.
+2. Attach to a Node: Attach the MapGenHandler script to a Node in your Godot scene.
 ### Initialization
-
 In your Godot scene, attach the script to a Node and call the necessary functions to generate and manipulate your maps. Here's an example of how to initialize and use the MapGenHandler:
-
-```gdscript
+```
+gdscript
+Copy code
 extends Node
 
 var mapGenHandler := MapGenHandler.new()
@@ -37,12 +31,14 @@ func _ready():
 ```
 ## Functionality
 ### Map Generation Functions
-- `generateBlankMap(height: int, width: int, cellToSetWith: int) -> Array:` Generates a blank map with the specified dimensions and initial tile type.
-- `generateBorderedMap(width: int, height: int, border_tile: int, inner_tile: int, border_thickness: int = 1) -> Array:` Generates a map with a border of specified thickness.
-- `generateDiagonalStripesMap(width: int, height: int, tile_type1: int, tile_type2: int, stripe_width: int = 1, reverse_direction: bool = false) -> Array:` Generates a diagonal stripes pattern map.
-- `generateRowMap(width: int, height: int, tile_type1: int, tile_type2: int, row_thickness: int) -> Array:` Generates a row-by-row pattern map.
-- `generateColumnMap(width: int, height: int, tile_type1: int, tile_type2: int, column_thickness: int) -> Array:` Generates a column-by-column pattern map.
-- `generateCheckerboardMap(width: int, height: int, tile_type1: int, tile_type2: int, square_size: int) -> Array:` Generates a checkerboard pattern map.
+- `func generateBlankMap(height: int, width: int, cellToSetWith: int) -> Array:`. This function creates a blank map of specified dimensions. Each cell in the map is initialized with the `cellToSetWith` tile type.
+- `func generateBorderedMap(width: int, height: int, border_tile: int, inner_tile: int, border_thickness: int = 1) -> Array:`. This function generates a map with a border around it. The border has a specified thickness and is filled with the `border_tile`, while the inside area is filled with the `inner_tile`.
+- `func generateDiagonalStripesMap(width: int, height: int, tile_type1: int, tile_type2: int, stripe_width: int = 1, reverse_direction: bool = false) -> Array:`. This function creates a map with diagonal stripes. The stripes alternate between `tile_type1` and `tile_type2`, and the width of each stripe is defined by `stripe_width.` You can reverse the direction of the stripes if desired.
+- `func generateRowMap(width: int, height: int, tile_type1: int, tile_type2: int, row_thickness: int) -> Array:`. This function generates a map with horizontal stripes or rows. The rows alternate between `tile_type1` and `tile_type2`, and the thickness of each row is specified by row_thickness.
+- `func generateColumnMap(width: int, height: int, tile_type1: int, tile_type2: int, column_thickness: int) -> Array:`. This function generates a map with vertical stripes or columns. The columns alternate between `tile_type1` and `tile_type2`, and the thickness of each column is specified by column_thickness.
+- `func generateCheckerboardMap(width: int, height: int, tile_type1: int, tile_type2: int, square_size: int) -> Array:`. This function generates a checkerboard pattern map. The squares alternate between `tile_type1` and `tile_type2`, and the size of each square is defined by square_size.
+
+
 
 ### Map Modification Functions
 applyStochasticCellularAutomota(map: Array, cellToSet: int, randomChance: float = 0.5) -> Array: Applies a stochastic cellular automaton to modify the map.
