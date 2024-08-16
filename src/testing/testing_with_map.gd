@@ -6,8 +6,8 @@ var mapToUse := []
 var poi := []
 var sot := []
 var rpoints := []
-const HEIGHT := 100
-const WIDTH := 100
+const WIDTH := 140
+const HEIGHT := 75
 var mgh := MapGenHandler.new()
 signal mapDone
 var t := Thread.new()
@@ -30,11 +30,11 @@ func genMap() -> void:
 	print("made blank map")
 	mapToUse = mgh.applyFastPerlinNoise( 0.01, 0.5, mgh.floorTile, mapToUse )
 	print("applied noise")
-	mapToUse = mgh.drawBorder( 2, mgh.wallTile, mapToUse )
+	#mapToUse = mgh.drawBorder( 2, mgh.wallTile, mapToUse )
 	print("drew border, done map")
-	mapToUse = mgh.applyLinearConnectionToSections(2, mgh.floorTile, mapToUse)
+	#mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mgh.floorTile, mapToUse)
 	print("applied connections ")
-	poi = mgh.findMostDistantPoints( mgh.getLargestSectionOfTileType(mgh.floorTile, mapToUse), 32 )
+	#poi = mgh.findMostDistantPoints( mgh.getLargestSectionOfTileType(mgh.floorTile, mapToUse), 32 )
 	print("found points of interest")
 	for i in range(0,33):
 		rpoints.append( mgh.getARandomTileByTileType( mgh.floorTile, mapToUse  ) )
@@ -57,4 +57,3 @@ func setMapToTileset() -> void:
 		$TileMap.set_cell( 0, Vector2i(point.x,point.y), 0,Vector2i(4,2)  )
 	for point in rpoints:
 		$TileMap.set_cell( 0, Vector2i(point.x,point.y), 0,Vector2i(0,9)  )
-

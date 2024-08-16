@@ -1042,4 +1042,6 @@ tile_set = SubResource("TileSet_kx6jt")
 format = 2
 
 [node name="movingCamera" parent="." instance=ExtResource("3_hvd3y")]
-position = Vector2(584, 322)
+position = Vector2(1165, 646)
+
+[node name="TileMapLayer" type="TileMapLayer" parent="."]

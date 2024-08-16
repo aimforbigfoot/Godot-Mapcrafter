@@ -812,18 +812,6 @@ func closestPointsBetweenSections(section1: Array, section2: Array) -> Array:
 
 	return closest_pair
 
-func carve_path(x: int, y: int, width, height, wall_tile, floor_tile, path_tile:int, map:Array):
-	map[y][x] = path_tile
-	var directions = [[0, 1], [1, 0], [0, -1], [-1, 0]]
-	directions.shuffle()
-	
-	for dir in directions:
-		var next_x = x + dir[0] * 2
-		var next_y = y + dir[1] * 2
-		if next_x > 0 and next_x < width - 1 and next_y > 0 and next_y < height - 1 and map[next_y][next_x] == wall_tile:
-			map[y + dir[1]][x + dir[0]] = path_tile
-			carve_path(next_x, next_y)
-		
 # Function to calculate the centroid of a section
 func calculateCentroid(section: Array) -> Vector2:
 	var sum_x = 0
@@ -1068,15 +1056,6 @@ func generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, top
 		for x in range(topLeftPosOfBox.x, topLeftPosOfBox.x + boxWidth):
 			map = setCell( x, y, boxTile, map )
 	
-	return map
-
-# Generate a map with a maze-like structure using recursive backtracking
-func generateMazeMap(width: int, height: int, wall_tile: int, path_tile: int) -> Array:
-	var map = generateBlankMap(height, width, wall_tile)
-	var stack = []
-	var start_x = 1
-	var start_y = 1	
-	carve_path(start_x, start_y)
 	return map
 
 # Generate a map with a cellular automata cave-like structure
