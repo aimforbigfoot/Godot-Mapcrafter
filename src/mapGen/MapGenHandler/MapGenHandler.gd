@@ -134,6 +134,17 @@ func applyFastValueNoise( freqVal:float, thresholdValue:float, cellToSet:int, ma
 				a = setCell(x,y, cellToSet, a)
 		
 	return a
+
+func applyFastWorleyNoise(tileToSet: int, noise_scale: float, threshold: float, map:Array) -> Array:
+	fnl.noise_type = FastNoiseLite.TYPE_CELLULAR
+	fnl.frequency = noise_scale
+	for y in range(map.size()):
+		for x in range(map[0].size()):
+			var noise_value :float= abs(fnl.get_noise_2d(x, y))
+			if noise_value > threshold:
+				map = setCell( x,y, tileToSet, map )
+	
+	return map
 # Apply cellular automaton (Conway's Game of Life)
 func applyCellularAutomata(generations: int, cellToApplyWith:int, cellToBlankWith:int, map: Array) -> Array:
 	var map_copy :Array= map.duplicate(true)
@@ -272,7 +283,7 @@ func applyLinearConnectionToSections(corridor_size: int, tile_type: int, map: Ar
 		var end = centroids[i + 1]
 		map_copy = drawCorridor(start, end, tile_type, corridor_size, map_copy)
 	return map_copy
-func applyConnectionWithMST(tile_type: int, connection_tile: int, map: Array) -> Array:
+func applyConnectionWithMST(tile_type: int, map: Array) -> Array:
 	var sections = getSectionsOfACertainTile(tile_type, map)
 	var map_copy = map.duplicate(true)
 	var connections_made = {}
@@ -304,7 +315,7 @@ func applyConnectionWithMST(tile_type: int, connection_tile: int, map: Array) ->
 		var y = find(parents, edge["j"])
 
 		if x != y:
-			map_copy = drawCorridor(centroids[edge["i"]], centroids[edge["j"]], connection_tile, 1, map_copy)
+			map_copy = drawCorridor(centroids[edge["i"]], centroids[edge["j"]], tile_type, 1, map_copy)
 			union(parents, rank, x, y)
 			e += 1
 			if e == centroids.size() - 1:
@@ -1095,7 +1106,7 @@ func connectClosestSections(tile_type: int, connection_tile: int, map: Array) ->
 
 
 #Generate a map -> generates a 2d array with at a given height and width
-func generateBlankMap(height:int, width:int, cellToSetWith:int) -> Array:
+func generateBlankMap(width:int, height:int, cellToSetWith:int) -> Array:
 	var a := []
 	for y in height:
 		a.append([])
@@ -1197,3 +1208,51 @@ func generateCaveMap(width: int, height: int, wall_tile: int, floor_tile: int, i
 		map = new_map
 	
 	return map
+
+
+func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_tile: int, map: Array) -> Array:
+	var height = map.size()
+	var width = map[0].size()
+	var map_copy = map.duplicate(true)
+	
+	# Create random wall thickness around the border
+	for y in range(height):
+		for x in range(width):
+			# Calculate distance to the nearest edge (left, right, top, bottom)
+			var distance_to_edge = min(x, width - 1 - x, y, height - 1 - y)
+			
+			# Determine random wall thickness for this position
+			var wall_thickness = randi_range(min_wall_thickness, max_wall_thickness)
+			
+			# Place wall tiles based on the calculated thickness
+			if distance_to_edge < wall_thickness:
+				map_copy[y][x] = wall_tile
+	
+	return map_copy
+
+
+func applySmoothing(map: Array, wall_tile: int, floor_tile: int, smoothing_iterations: int = 1) -> Array:
+	var height = map.size()
+	var width = map[0].size()
+	var map_copy = map.duplicate(true)
+	
+	for iteration in range(smoothing_iterations):
+		var new_map = map_copy.duplicate(true)
+		
+		for y in range(height):
+			for x in range(width):
+				var wall_count = countNeighborsOfCertainCellType(x, y, wall_tile, map_copy)
+				
+				# Apply smoothing rules:
+				if map_copy[y][x] == wall_tile:
+					# If a wall has less than 4 wall neighbors, it becomes a floor.
+					if wall_count < 4:
+						new_map[y][x] = floor_tile
+				else:
+					# If a floor has 5 or more wall neighbors, it becomes a wall.
+					if wall_count >= 5:
+						new_map[y][x] = wall_tile
+		
+		map_copy = new_map
+	
+	return map_copy
