@@ -129,7 +129,7 @@ func applyFastValueNoise( freqVal:float, thresholdValue:float, cellToSet:int, ma
 	fnl.frequency = freqVal
 	for y in map.size():
 		for x in map[y].size():
-			var fnlNoise :float =fnl.get_noise_2d(x,y) * 10
+			var fnlNoise :float =abs(fnl.get_noise_2d(x,y) * 10)
 			if fnlNoise < thresholdValue:
 				a = setCell(x,y, cellToSet, a)
 		
@@ -525,6 +525,98 @@ func drawRandomWalksInsideLargeSectionsOfARandomTileType( timesToPlaceAWalk:int,
 	var a := map.duplicate( true )
 	return a
 
+
+# Updated function for a crazy sporadic walker with thickness
+func drawCrazySporadicWalk(startPos: Vector2i, steps: int, cellToSet: int, thickness: int, map: Array) -> Array:
+	var a = map.duplicate(true)
+	var currPos = startPos
+	var directions = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+					  Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]
+	
+	for i in range(steps):
+		# Randomly choose a direction, including diagonal movements
+		var dir = directions[randi() % directions.size()]
+		
+		# Add some randomness to the step size (1 to 3 steps at a time)
+		var step_size = randi() % 3 + 1
+		currPos += dir * step_size
+		
+		# Set the cells within the thickness range
+		for dx in range(-thickness, thickness + 1):
+			for dy in range(-thickness, thickness + 1):
+				if dx * dx + dy * dy <= thickness * thickness:
+					a = setCell(currPos.x + dx, currPos.y + dy, cellToSet, a)
+		
+		# 10% chance to teleport to a random location on the map
+		if randf() < 0.1:
+			currPos = getARandomPointInMap(a)
+	
+	return a
+
+func drawNonOverlappingWalk(startPos: Vector2i, steps: int, cellToSet: int, square_size: int, map: Array) -> Array:
+	var a = map.duplicate(true)
+	var currPos = startPos
+	var directions = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var visited = {}
+
+	# Mark initial position and its surroundings as visited
+	for dx in range(-square_size, square_size + 1):
+		for dy in range(-square_size, square_size + 1):
+			var pos = Vector2i(currPos.x + dx, currPos.y + dy)
+			visited[pos] = true
+			a = drawSquare(currPos, square_size, cellToSet, a)
+
+	for i in range(steps):
+		var valid_directions = []
+		for dir in directions:
+			var newPos = currPos + dir * (square_size + 1)
+			if isValidStep(newPos, square_size, visited, cellToSet, a):
+				valid_directions.append(dir)
+
+		if valid_directions.size() > 0:
+			var dir = valid_directions[randi() % valid_directions.size()]
+			currPos += dir * (square_size + 1)
+			a = drawSquare(currPos, square_size, cellToSet, a)
+			markVisited(currPos, square_size, visited)
+		else:
+			# If stuck, try to find a nearby unvisited cell
+			var found = false
+			for search_radius in range(1, 10):
+				for dx in range(-search_radius, search_radius + 1):
+					for dy in range(-search_radius, search_radius + 1):
+						var newPos = currPos + Vector2i(dx, dy) * (square_size + 1)
+						if isValidStep(newPos, square_size, visited, cellToSet, a):
+							currPos = newPos
+							a = drawSquare(currPos, square_size, cellToSet, a)
+							markVisited(currPos, square_size, visited)
+							found = true
+							break
+					if found:
+						break
+				if found:
+					break
+			if not found:
+				break  # If completely stuck, end the walk
+
+	return a
+
+# Helper function to check if a step is valid
+func isValidStep(pos: Vector2i, square_size: int, visited: Dictionary, cellToSet: int, map: Array) -> bool:
+	for dx in range(-square_size, square_size + 1):
+		for dy in range(-square_size, square_size + 1):
+			var checkPos = Vector2i(pos.x + dx, pos.y + dy)
+			if visited.has(checkPos) or getCell(checkPos.x, checkPos.y, map) == cellToSet:
+				return false
+	return true
+
+# Helper function to mark cells as visited
+func markVisited(pos: Vector2i, square_size: int, visited: Dictionary) -> void:
+	for dx in range(-square_size, square_size + 1):
+		for dy in range(-square_size, square_size + 1):
+			var markPos = Vector2i(pos.x + dx, pos.y + dy)
+			visited[markPos] = true
+
+
 # ######################################## #
 #
 #
@@ -618,6 +710,18 @@ func printMap(map:Array) -> void:
 #
 # ######################################## #
 
+func smoothAndRemoveDebris(map: Array, debris_tile: int, replacement_tile: int, debris_threshold: int) -> Array:
+	var map_copy = map.duplicate(true)
+	var sections = getSectionsOfACertainTile(debris_tile, map)
+	
+	for section in sections:
+		if section.size() < debris_threshold:
+			for pos in section:
+				map_copy = setCell(pos.x, pos.y, replacement_tile, map_copy)
+	
+	return map_copy
+
+
 # Function to count the occurrences of each tile type in the map
 func countTiles(map: Array) -> Dictionary:
 	var countOfTiles = {}
@@ -627,6 +731,18 @@ func countTiles(map: Array) -> Dictionary:
 				countOfTiles[cell] = 0
 			countOfTiles[cell] += 1
 	return countOfTiles
+func countSpecificTile(tileToCheck:int, map:Array ) -> int:
+	var count := 0 
+	for row in map:
+		for cell in row:
+			if cell == tileToCheck:
+				count+=1
+	return count
+
+func getPercentOfTiles(tileToCheck:int, map:Array ) -> float:
+	var countOfTilesIWantToCheck := countSpecificTile(tileToCheck, map)
+	var totalTileCount :float= map.size() * map[0].size()
+	return countOfTilesIWantToCheck / totalTileCount
 
 # Function to get the tile type with the least occurrences in the map
 func getLeastCommonTile(map: Array) -> int:

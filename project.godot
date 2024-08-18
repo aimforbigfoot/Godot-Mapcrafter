@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="cellularAutomotaCaveGenPersonal"
-run/main_scene="res://src/world.tscn"
+run/main_scene="res://src/testing/testingWorld/testing_with_map.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
 
