@@ -611,21 +611,26 @@ func drawNonOverlappingWalk(startPos: Vector2i, steps: int, cellToSet: int, squa
 
 	return a
 
-# Helper function to check if a step is valid
-func isValidStep(pos: Vector2i, square_size: int, visited: Dictionary, cellToSet: int, map: Array) -> bool:
-	for dx in range(-square_size, square_size + 1):
-		for dy in range(-square_size, square_size + 1):
-			var checkPos = Vector2i(pos.x + dx, pos.y + dy)
-			if visited.has(checkPos) or getCell(checkPos.x, checkPos.y, map) == cellToSet:
-				return false
-	return true
 
-# Helper function to mark cells as visited
-func markVisited(pos: Vector2i, square_size: int, visited: Dictionary) -> void:
-	for dx in range(-square_size, square_size + 1):
-		for dy in range(-square_size, square_size + 1):
-			var markPos = Vector2i(pos.x + dx, pos.y + dy)
-			visited[markPos] = true
+func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_tile: int, map: Array) -> Array:
+	var height = map.size()
+	var width = map[0].size()
+	var map_copy = map.duplicate(true)
+	
+	# Create random wall thickness around the border
+	for y in range(height):
+		for x in range(width):
+			# Calculate distance to the nearest edge (left, right, top, bottom)
+			var distance_to_edge = min(x, width - 1 - x, y, height - 1 - y)
+			
+			# Determine random wall thickness for this position
+			var wall_thickness = randi_range(min_wall_thickness, max_wall_thickness)
+			
+			# Place wall tiles based on the calculated thickness
+			if distance_to_edge < wall_thickness:
+				map_copy[y][x] = wall_tile
+	
+	return map_copy
 
 
 # ######################################## #
@@ -838,6 +843,49 @@ func union(parent, rank, x, y):
 	else:
 		parent[yroot] = xroot
 		rank[xroot] += 1
+
+
+# Helper function to check if a step is valid
+func isValidStep(pos: Vector2i, square_size: int, visited: Dictionary, cellToSet: int, map: Array) -> bool:
+	for dx in range(-square_size, square_size + 1):
+		for dy in range(-square_size, square_size + 1):
+			var checkPos = Vector2i(pos.x + dx, pos.y + dy)
+			if visited.has(checkPos) or getCell(checkPos.x, checkPos.y, map) == cellToSet:
+				return false
+	return true
+
+# Helper function to mark cells as visited
+func markVisited(pos: Vector2i, square_size: int, visited: Dictionary) -> void:
+	for dx in range(-square_size, square_size + 1):
+		for dy in range(-square_size, square_size + 1):
+			var markPos = Vector2i(pos.x + dx, pos.y + dy)
+			visited[markPos] = true
+
+func applySmoothing(map: Array, wall_tile: int, floor_tile: int, smoothing_iterations: int = 1) -> Array:
+	var height = map.size()
+	var width = map[0].size()
+	var map_copy = map.duplicate(true)
+	
+	for iteration in range(smoothing_iterations):
+		var new_map = map_copy.duplicate(true)
+		
+		for y in range(height):
+			for x in range(width):
+				var wall_count = countNeighborsOfCertainCellType(x, y, wall_tile, map_copy)
+				
+				# Apply smoothing rules:
+				if map_copy[y][x] == wall_tile:
+					# If a wall has less than 4 wall neighbors, it becomes a floor.
+					if wall_count < 4:
+						new_map[y][x] = floor_tile
+				else:
+					# If a floor has 5 or more wall neighbors, it becomes a wall.
+					if wall_count >= 5:
+						new_map[y][x] = wall_tile
+		
+		map_copy = new_map
+	
+	return map_copy
 
 # ######################################## #
 #
@@ -1113,6 +1161,22 @@ func generateBlankMap(width:int, height:int, cellToSetWith:int) -> Array:
 		for x in width:
 			a[y].append(cellToSetWith)
 	return a
+
+# Generate a random map based on a threshold value
+func generateRandomMap(width: int, height: int, tile_type1: int, tile_type2: int, threshold: float) -> Array:
+	var map = []
+	for y in range(height):
+		var row = []
+		for x in range(width):
+			if randf() > threshold:
+				row.append(tile_type1)
+			else:
+				row.append(tile_type2)
+		map.append(row)
+	return map
+
+	
+	
 # Generate a map with a border of specified thickness
 func generateBorderedMap(width: int, height: int, border_tile: int, inner_tile: int, border_thickness: int = 1) -> Array:
 	var map = []
@@ -1187,13 +1251,13 @@ func generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, top
 
 # Generate a map with a cellular automata cave-like structure
 func generateCaveMap(width: int, height: int, wall_tile: int, floor_tile: int, initial_chance: float = 0.45, iterations: int = 4) -> Array:
-	var map = generateBlankMap(height, width, floor_tile)
+	var map = generateBlankMap(width, height, floor_tile)
 	
 	# Initialize with random walls
 	for y in range(height):
 		for x in range(width):
 			if randf() < initial_chance:
-				map[y][x] = wall_tile
+				setCell(x,y, wall_tile, map)
 	
 	# Apply cellular automata rules
 	for i in range(iterations):
@@ -1208,51 +1272,3 @@ func generateCaveMap(width: int, height: int, wall_tile: int, floor_tile: int, i
 		map = new_map
 	
 	return map
-
-
-func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_tile: int, map: Array) -> Array:
-	var height = map.size()
-	var width = map[0].size()
-	var map_copy = map.duplicate(true)
-	
-	# Create random wall thickness around the border
-	for y in range(height):
-		for x in range(width):
-			# Calculate distance to the nearest edge (left, right, top, bottom)
-			var distance_to_edge = min(x, width - 1 - x, y, height - 1 - y)
-			
-			# Determine random wall thickness for this position
-			var wall_thickness = randi_range(min_wall_thickness, max_wall_thickness)
-			
-			# Place wall tiles based on the calculated thickness
-			if distance_to_edge < wall_thickness:
-				map_copy[y][x] = wall_tile
-	
-	return map_copy
-
-
-func applySmoothing(map: Array, wall_tile: int, floor_tile: int, smoothing_iterations: int = 1) -> Array:
-	var height = map.size()
-	var width = map[0].size()
-	var map_copy = map.duplicate(true)
-	
-	for iteration in range(smoothing_iterations):
-		var new_map = map_copy.duplicate(true)
-		
-		for y in range(height):
-			for x in range(width):
-				var wall_count = countNeighborsOfCertainCellType(x, y, wall_tile, map_copy)
-				
-				# Apply smoothing rules:
-				if map_copy[y][x] == wall_tile:
-					# If a wall has less than 4 wall neighbors, it becomes a floor.
-					if wall_count < 4:
-						new_map[y][x] = floor_tile
-				else:
-					# If a floor has 5 or more wall neighbors, it becomes a wall.
-					if wall_count >= 5:
-						new_map[y][x] = wall_tile
-		
-		map_copy = new_map
-	
-	return map_copy

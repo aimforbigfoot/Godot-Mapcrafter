@@ -20,7 +20,17 @@ func _ready() -> void:
 	t.start(test,Thread.PRIORITY_HIGH)
 
 func test() -> void:
-	mapToUse = mgh.generateBorderedMap(WIDTH, HEIGHT, mgh.wallTile, mgh.floorTile, randi_range(1,10))
+	var b := true if randf() < 0.5 else false
+	var c := 0
+	if b:
+		b = mgh.wallTile
+	else:
+		b = mgh.floorTile
+	#generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, topLeftPosOfBox: Vector2, boxWidth: int, boxHeight: int) -> Array:
+	mapToUse = mgh.generateBlankMap(WIDTH, HEIGHT,b )
+	#mapToUse = mgh.applyExpandedTiles(1, mgh.wallTile, mapToUse)
+	
+	#mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse )
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
 
