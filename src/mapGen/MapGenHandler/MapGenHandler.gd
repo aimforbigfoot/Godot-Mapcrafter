@@ -34,6 +34,95 @@ func _ready() -> void:
 	randomize()
 	setFastNoiseLiteSeed(randi())
 
+
+
+
+
+# ######################################## #
+#
+#
+#
+#			BASIC MAP FUNCTIONS 
+#	functiosn that make map mods and data collection from the map
+#	a lot easier for the developer (you) :) 
+#
+#
+# ######################################## #
+
+# Sets a cell by checking the width and height of the map to ensure cell placement always happens
+# can be cusomtized to handle placing outside or looping around
+func setCell ( x:int, y:int, cellToSet:int, map:Array ) -> Array:
+	var res := getMapHeightAndWidth(map)
+	var height :int= res[0]
+	var width :int= res[1]
+	if x < width and x >= 0 and y < height and y >= 0:	
+		map[y][x] = cellToSet
+	return map
+func getCell( x:int, y:int, map:Array ) -> int:
+	var cellType := -1
+	var res := getMapHeightAndWidth(map)
+	var height :int= res[0]
+	var width :int= res[1]
+	if x < width and x >= 0 and y < height and y >= 0:
+		cellType = map[y][x]
+	return cellType
+# just returns a random tile
+func getRandomTileType( arrOfPossibleTiles:Array ) -> int:
+	return arrOfPossibleTiles[ floor( randf() * arrOfPossibleTiles.size() )  ]
+func getMapHeightAndWidth(map:Array) -> Array:
+	return [  len(map)  , len(map[0])  ]
+func getHalfWayOfLength(width:int) -> int:
+	return int( floor( width/2 ) )
+func getARandomPointInMap(map:Array) -> Vector2i:
+	var height := map.size()
+	var width :int= map[0].size()
+	return Vector2i( 
+		randi_range( 0, width ), 
+		randi_range(0, height) )
+func getARandomTileByTileType( tileToGet:int, map:Array ) -> Vector2:
+	var allTilesOfAType := getArrayOfAllTilesOfOneType(tileToGet, map)
+	return allTilesOfAType[ floor( randf() * allTilesOfAType.size() ) ]
+
+func getArrayOfAllTilesOfOneType(tileToGet:int, map:Array) -> Array:
+	var b := []
+	var y := 0
+	for row in map:
+		var x := 0 
+		for cell in row:
+			if getCell( x,y, map ) == tileToGet:
+				b.append( Vector2(x,y) )
+			x += 1
+		y += 1
+	return b
+	
+func setFastNoiseLiteSeed(_seed:int) -> void:
+	fnl.seed = _seed
+	# Function to calculate distance between two points
+func distance(p1: Vector2, p2: Vector2) -> float:
+	return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2))
+
+# prints a map to the godot terminal with X as Wall and _ as floors
+func printMap(map:Array) -> void:
+	print("\n")
+	var aToPrint := []
+	for row in map:
+		#print(row)
+		aToPrint.append([])
+		var sToPrint := ''
+		for tile in row:
+			if tile == wallTile:
+				sToPrint += "⬛"
+			elif tile == floorTile:
+				sToPrint += "🟩"
+			elif tile == TILES.INTEREST:
+				sToPrint += "🟨"
+			else:
+				sToPrint += "🔴"
+		print(sToPrint)
+
+
+
+
 # ######################################## #
 #
 #
@@ -338,33 +427,7 @@ func applyConnectionsWithRandomWalks(tile_type: int, connection_tile: int, steps
 		map_copy = drawRandomWalk(start, steps, connection_tile, 1, map_copy)
 
 	return map_copy
-#func applyConnectionsWithDelaunay(tile_type: int, connection_tile: int, map: Array) -> Array:
-	#var sections = getSectionsOfACertainTile(tile_type, map)
-	#var map_copy = map.duplicate(true)
-	#var centroids = []
-	#for section in sections:
-		#centroids.append(calculateCentroid(section))
-#
-	## Create a set of points for Delaunay triangulation
-	#var delaunay_points = []
-	#for centroid in centroids:
-		#delaunay_points.append([centroid.x, centroid.y])
-#
-	## Perform Delaunay triangulation
-	#var delaunay = Delaunay.new()
-	#var triangles = delaunay.triangulate(delaunay_points)
-#
-	## Connect centroids using the edges of the triangulation
-	#for triangle in triangles:
-		#var p1 = centroids[triangle[0]]
-		#var p2 = centroids[triangle[1]]
-		#var p3 = centroids[triangle[2]]
-#
-		#map_copy = drawCorridor(p1, p2, connection_tile, 1, map_copy)
-		#map_copy = drawCorridor(p2, p3, connection_tile, 1, map_copy)
-		#map_copy = drawCorridor(p3, p1, connection_tile, 1, map_copy)
-#
-	#return map_copy
+	
 func applyConnectionsLinearly(tile_type: int, connection_tile: int, map: Array) -> Array:
 	var sections = getSectionsOfACertainTile(tile_type, map)
 	var map_copy = map.duplicate(true)
@@ -631,89 +694,6 @@ func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_ti
 				map_copy[y][x] = wall_tile
 	
 	return map_copy
-
-
-# ######################################## #
-#
-#
-#
-#			BASIC MAP FUNCTIONS 
-#	functiosn that make map mods and data collection from the map
-#	a lot easier for the developer (you) :) 
-#
-#
-# ######################################## #
-
-# Sets a cell by checking the width and height of the map to ensure cell placement always happens
-# can be cusomtized to handle placing outside or looping around
-func setCell ( x:int, y:int, cellToSet:int, map:Array ) -> Array:
-	var res := getMapHeightAndWidth(map)
-	var height :int= res[0]
-	var width :int= res[1]
-	if x < width and x >= 0 and y < height and y >= 0:	
-		map[y][x] = cellToSet
-	return map
-func getCell( x:int, y:int, map:Array ) -> int:
-	var cellType := -1
-	var res := getMapHeightAndWidth(map)
-	var height :int= res[0]
-	var width :int= res[1]
-	if x < width and x >= 0 and y < height and y >= 0:
-		cellType = map[y][x]
-	return cellType
-# just returns a random tile
-func getRandomTileType( arrOfPossibleTiles:Array ) -> int:
-	return arrOfPossibleTiles[ floor( randf() * arrOfPossibleTiles.size() )  ]
-func getMapHeightAndWidth(map:Array) -> Array:
-	return [  len(map)  , len(map[0])  ]
-func getHalfWayOfLength(width:int) -> int:
-	return int( floor( width/2 ) )
-func getARandomPointInMap(map:Array) -> Vector2i:
-	var height := map.size()
-	var width :int= map[0].size()
-	return Vector2i( 
-		randi_range( 0, width ), 
-		randi_range(0, height) )
-func getARandomTileByTileType( tileToGet:int, map:Array ) -> Vector2:
-	var allTilesOfAType := getArrayOfAllTilesOfOneType(tileToGet, map)
-	return allTilesOfAType[ floor( randf() * allTilesOfAType.size() ) ]
-
-func getArrayOfAllTilesOfOneType(tileToGet:int, map:Array) -> Array:
-	var b := []
-	var y := 0
-	for row in map:
-		var x := 0 
-		for cell in row:
-			if getCell( x,y, map ) == tileToGet:
-				b.append( Vector2(x,y) )
-			x += 1
-		y += 1
-	return b
-	
-func setFastNoiseLiteSeed(_seed:int) -> void:
-	fnl.seed = _seed
-	# Function to calculate distance between two points
-func distance(p1: Vector2, p2: Vector2) -> float:
-	return sqrt(pow(p1.x - p2.x, 2) + pow(p1.y - p2.y, 2))
-
-# prints a map to the godot terminal with X as Wall and _ as floors
-func printMap(map:Array) -> void:
-	print("\n")
-	var aToPrint := []
-	for row in map:
-		#print(row)
-		aToPrint.append([])
-		var sToPrint := ''
-		for tile in row:
-			if tile == wallTile:
-				sToPrint += "⬛"
-			elif tile == floorTile:
-				sToPrint += "🟩"
-			elif tile == TILES.INTEREST:
-				sToPrint += "🟨"
-			else:
-				sToPrint += "🔴"
-		print(sToPrint)
 
 
 # ######################################## #
