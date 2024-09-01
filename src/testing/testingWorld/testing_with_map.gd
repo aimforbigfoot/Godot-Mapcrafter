@@ -4,36 +4,34 @@ extends Node2D
 var mapToUse := []
 var poi := []
 var rpoints := []
-var WIDTH := 250
-var HEIGHT := 125
+var WIDTH := 20
+var HEIGHT := 20
 var mgh := MapGenHandler.new()
 signal mapDone
 var t := Thread.new()
 
 
 func _ready() -> void:
-	WIDTH = randi_range(50, 150)
-	HEIGHT = randi_range(20, 100)
+
+	WIDTH = randi_range(50, 100)
+	HEIGHT = randi_range(20, 75)
 	mapDone.connect(setMapToTileset)
 	randomize()
 	mgh.setFastNoiseLiteSeed( randi() )
 	t.start(test,Thread.PRIORITY_HIGH)
 
 func test() -> void:
-	var b := true if randf() < 0.5 else false
-	var c := 0
-	if b:
-		b = mgh.wallTile
-	else:
-		b = mgh.floorTile
-	#generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, topLeftPosOfBox: Vector2, boxWidth: int, boxHeight: int) -> Array:
-	mapToUse = mgh.generateBlankMap(WIDTH, HEIGHT,b )
-	#mapToUse = mgh.applyExpandedTiles(1, mgh.wallTile, mapToUse)
-	
-	#mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse )
+	mapToUse = mgh.generateBlankMap(WIDTH,HEIGHT,mgh.floorTile)
+	var p1 := mgh.getARandomPointInMap( mapToUse )
+	var size := randi_range(1,20)
+	mapToUse = mgh.drawSquare(p1, size, mgh.wallTile, mapToUse )
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
-
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("step"):
+		mapToUse = mgh.applyErosion( 1, mgh.wallTile, mgh.floorTile , mapToUse )
+		setMapToTileset()
+		
 
 func genReallyNaturalCaves() -> void:
 	mapToUse = mgh.generateBlankMap(HEIGHT, WIDTH, mgh.floorTile)
@@ -166,6 +164,8 @@ func setMapToTileset() -> void:
 			elif cell == mgh.floorTile:
 				mct.placeFloorTile(x,y)
 				pass
+			elif cell == mgh.TILES.INTEREST:
+				mct.setInterestTile(x,y)
 			x+= 1
 		y += 1
 	for point in poi:

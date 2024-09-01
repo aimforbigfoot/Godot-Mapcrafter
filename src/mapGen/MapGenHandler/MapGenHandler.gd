@@ -74,8 +74,8 @@ func getMapHeightAndWidth(map:Array) -> Array:
 func getHalfWayOfLength(width:int) -> int:
 	return int( floor( width/2 ) )
 func getARandomPointInMap(map:Array) -> Vector2i:
-	var height := map.size()
-	var width :int= map[0].size()
+	var height := map.size()-1
+	var width :int= map[0].size()-1
 	return Vector2i( 
 		randi_range( 0, width ), 
 		randi_range(0, height) )
@@ -626,51 +626,32 @@ func drawCrazySporadicWalk(startPos: Vector2i, steps: int, cellToSet: int, thick
 			currPos = getARandomPointInMap(a)
 	
 	return a
-
-func drawNonOverlappingWalk(startPos: Vector2i, steps: int, cellToSet: int, square_size: int, map: Array) -> Array:
+func drawNonOverlappingWalk(startPos: Vector2i, steps: int, cellToSet: int, map: Array) -> Array:
 	var a = map.duplicate(true)
 	var currPos = startPos
 	var directions = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 	var visited = {}
 
-	# Mark initial position and its surroundings as visited
-	for dx in range(-square_size, square_size + 1):
-		for dy in range(-square_size, square_size + 1):
-			var pos = Vector2i(currPos.x + dx, currPos.y + dy)
-			visited[pos] = true
-			a = drawSquare(currPos, square_size, cellToSet, a)
+	# Mark initial position as visited
+	visited[currPos] = true
+	a = setCell(currPos.x, currPos.y, cellToSet, a)
 
 	for i in range(steps):
 		var valid_directions = []
 		for dir in directions:
-			var newPos = currPos + dir * (square_size + 1)
-			if isValidStep(newPos, square_size, visited, cellToSet, a):
+			var newPos = currPos + dir
+			if isValidStep(newPos, visited, a):
 				valid_directions.append(dir)
 
 		if valid_directions.size() > 0:
+			# Choose a random valid direction
 			var dir = valid_directions[randi() % valid_directions.size()]
-			currPos += dir * (square_size + 1)
-			a = drawSquare(currPos, square_size, cellToSet, a)
-			markVisited(currPos, square_size, visited)
+			currPos += dir
+			a = setCell(currPos.x, currPos.y, cellToSet, a)
+			visited[currPos] = true
 		else:
-			# If stuck, try to find a nearby unvisited cell
-			var found = false
-			for search_radius in range(1, 10):
-				for dx in range(-search_radius, search_radius + 1):
-					for dy in range(-search_radius, search_radius + 1):
-						var newPos = currPos + Vector2i(dx, dy) * (square_size + 1)
-						if isValidStep(newPos, square_size, visited, cellToSet, a):
-							currPos = newPos
-							a = drawSquare(currPos, square_size, cellToSet, a)
-							markVisited(currPos, square_size, visited)
-							found = true
-							break
-					if found:
-						break
-				if found:
-					break
-			if not found:
-				break  # If completely stuck, end the walk
+			# If no valid direction, stop the walk
+			break
 
 	return a
 
@@ -825,15 +806,16 @@ func union(parent, rank, x, y):
 		rank[xroot] += 1
 
 
-# Helper function to check if a step is valid
-func isValidStep(pos: Vector2i, square_size: int, visited: Dictionary, cellToSet: int, map: Array) -> bool:
-	for dx in range(-square_size, square_size + 1):
-		for dy in range(-square_size, square_size + 1):
-			var checkPos = Vector2i(pos.x + dx, pos.y + dy)
-			if visited.has(checkPos) or getCell(checkPos.x, checkPos.y, map) == cellToSet:
-				return false
-	return true
+# Helper function to check if the next step is valid (within bounds and not revisiting a cell)
+func isValidStep(pos: Vector2i, visited: Dictionary, map: Array) -> bool:
+	var map_height = map.size()
+	var map_width = map[0].size()
 
+	if pos.x < 0 or pos.x >= map_width or pos.y < 0 or pos.y >= map_height:
+		return false
+	if visited.has(pos):
+		return false
+	return true
 # Helper function to mark cells as visited
 func markVisited(pos: Vector2i, square_size: int, visited: Dictionary) -> void:
 	for dx in range(-square_size, square_size + 1):

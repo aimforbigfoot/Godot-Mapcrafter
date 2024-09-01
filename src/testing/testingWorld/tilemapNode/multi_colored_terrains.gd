@@ -65,6 +65,8 @@ func getTypeOfTile( tileType:int ) -> Vector2i:
 func setTile( x:int, y:int, tileType:int ) -> void:
 	set_cell(Vector2i(x,y), 1, getTypeOfTile(tileType), 0  )
 
+func setInterestTile( x:int, y:int ) -> void:
+	set_cell(Vector2i(x,y), 0,Vector2i(14,15), 0 )
 
 func placeWallTile(x:int,y:int) -> void:
 #its kinda assumed 0 is floor tile
