@@ -22,16 +22,15 @@ func _ready() -> void:
 
 func test() -> void:
 	mapToUse = mgh.generateBlankMap(WIDTH,HEIGHT,mgh.floorTile)
-	var p1 := mgh.getARandomPointInMap( mapToUse )
-	var size := randi_range(1,20)
-	mapToUse = mgh.drawSquare(p1, size, mgh.wallTile, mapToUse )
+	var randThreshold := randi_range(2,4)
+	for i in randi_range(2, 8):
+		mapToUse = mgh.drawSquare( mgh.getARandomPointInMap(mapToUse), 4, mgh.wallTile, mapToUse )
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("step"):
-		mapToUse = mgh.applyErosion( 1, mgh.wallTile, mgh.floorTile , mapToUse )
+		mapToUse = mgh.applyConnectionsLinearly( mgh.wallTile, mgh.wallTile,mapToUse )
 		setMapToTileset()
-		
 
 func genReallyNaturalCaves() -> void:
 	mapToUse = mgh.generateBlankMap(HEIGHT, WIDTH, mgh.floorTile)
