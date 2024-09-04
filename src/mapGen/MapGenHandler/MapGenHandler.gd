@@ -1,6 +1,6 @@
 # -------------------------------------------------------------------------------------------------
 #
-#                                   MapGenHandler V1
+#                                   Godot MapCrafter V1
 #
 #    Welcome to the MapGenHandler, your comprehensive toolkit for generating 2D grid-based maps.
 #    This script provides a robust set of tools for creating maps with customizable tiles, including
@@ -12,7 +12,7 @@
 #    - Tools to mark areas of interest and define sections using advanced algorithms.
 #    - Capable of being thread-safe map generation to handle large map sizes in the background.
 #
-#    This script is dedicated to managing	 map data through a 2D array of integers representing different
+#    This script is dedicated to managing map data through a 2D array of integers representing different
 #    tile types. It's optimized for performance in games or simulations where dynamic map generation is
 #    crucial.
 #
@@ -55,7 +55,7 @@ func setCell ( x:int, y:int, cellToSet:int, map:Array ) -> Array:
 	var res := getMapHeightAndWidth(map)
 	var height :int= res[0]
 	var width :int= res[1]
-	if x < width and x >= 0 and y < height and y >= 0:	
+	if x < width and x >= 0 and y < height and y >= 0:
 		map[y][x] = cellToSet
 	return map
 func getCell( x:int, y:int, map:Array ) -> int:

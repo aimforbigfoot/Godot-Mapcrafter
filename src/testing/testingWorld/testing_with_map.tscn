@@ -10,6 +10,9 @@ script = ExtResource("1_qllsj")
 [node name="movingCamera" parent="." instance=ExtResource("2_pxdui")]
 position = Vector2(1152, 640)
 
+[node name="Camera2D" parent="movingCamera" index="0"]
+position = Vector2(240, 224)
+
 [node name="multiColoredTerrains" parent="." instance=ExtResource("3_sfowa")]
 tile_map_data = PackedByteArray()
 

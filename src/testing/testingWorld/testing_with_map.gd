@@ -10,15 +10,28 @@ var mgh := MapGenHandler.new()
 signal mapDone
 var t := Thread.new()
 
-
 func _ready() -> void:
-
-	WIDTH = randi_range(50, 100)
-	HEIGHT = randi_range(20, 75)
+	WIDTH = randi_range(50, 300)
+	HEIGHT = randi_range(50, 300)
 	mapDone.connect(setMapToTileset)
 	randomize()
-	mgh.setFastNoiseLiteSeed( randi() )
-	t.start(test,Thread.PRIORITY_HIGH)
+	mgh.setFastNoiseLiteSeed(randi())
+	t.start(pick_random_function, Thread.PRIORITY_HIGH)
+
+# This function randomly picks one of the predefined generation functions and runs it
+func pick_random_function() -> void:
+	var functions = [
+		"genReallyNaturalCaves", 
+		#"genMapHollow", 
+		#"genWebbyMap", 
+		#"genConnectedBlobbyRooms", 
+		#"genCircularRooms", 
+		#"genVienyMaps", 
+		#"genOpenCaveLikeMaps",
+		#"randomCaves"
+	]
+	var random_func = functions[randi_range(0, functions.size() - 1)]
+	call(random_func)
 
 func test() -> void:
 	mapToUse = mgh.generateBlankMap(WIDTH,HEIGHT,mgh.floorTile)
@@ -27,9 +40,11 @@ func test() -> void:
 		mapToUse = mgh.drawSquare( mgh.getARandomPointInMap(mapToUse), 4, mgh.wallTile, mapToUse )
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
+
+
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("step"):
-		mapToUse = mgh.applyConnectionsLinearly( mgh.wallTile, mgh.wallTile,mapToUse )
+		mapToUse = mgh.applySmoothing( mapToUse, mgh.wallTile, mgh.wallTile )
 		setMapToTileset()
 
 func genReallyNaturalCaves() -> void:
@@ -43,10 +58,10 @@ func genReallyNaturalCaves() -> void:
 	print("done smoothing")
 	mapToUse = mgh.drawBorder(1, mgh.wallTile, mapToUse)
 	print("done second border")
-	mapToUse = mgh.applyConnectionsWithRandomWalks( mgh.floorTile, mgh.floorTile, 100, mapToUse )
-	print("done random connections")
-	mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse)
-	print("done proper connections")
+	#mapToUse = mgh.applyConnectionsWithRandomWalks( mgh.floorTile, mgh.floorTile, 100, mapToUse )
+	#print("done random connections")
+	#mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse)
+	#print("done proper connections")
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
 func genMapHollow() -> void:
@@ -102,6 +117,7 @@ func genCircularRooms() -> void:
 		mapToUse = mgh.drawCircle( p, randi_range(5,10), mgh.floorTile, mapToUse )
 		
 		mapToUse = mgh.drawCrazySporadicWalk( Vector2i(p.x,p.y), randi_range(10,100), mgh.floorTile, 2, mapToUse  )
+	mapToUse = mgh.drawNaturalBorder(3,7, mgh.wallTile, mapToUse)
 	mapToUse = mgh.applyConnectionWithMST(mgh.floorTile,mapToUse)
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
@@ -111,6 +127,7 @@ func genVienyMaps() -> void:
 	mapToUse = mgh.applyExpandedTiles(1, mgh.floorTile, mapToUse)
 	mapToUse = mgh.applyConnectionsWithRandomWalks(mgh.floorTile, mgh.floorTile, 60, mapToUse)
 	
+	mapToUse = mgh.drawNaturalBorder(3,7, mgh.wallTile, mapToUse)
 	mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse)
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
@@ -145,11 +162,25 @@ func genOpenCaveLikeMaps() -> void:
 			
 	mapToUse = mgh.smoothAndRemoveDebris( mapToUse, mgh.wallTile, mgh.floorTile, 3 )
 	
-	mapToUse = mgh.applyConnectionWithMST( mgh.floorTill, mapToUse)
+	mapToUse = mgh.applyConnectionWithMST( mgh.floorTile, mapToUse)
 	
 	mapToUse = mgh.drawBorder(2, mgh.wallTile, mapToUse)
 	
 	call_deferred_thread_group( "emit_signal", "mapDone" )
+
+
+func randomCaves() -> void:
+	mgh.setFastNoiseLiteSeed(  randi()  )
+	mapToUse = mgh.generateCaveMap(WIDTH, HEIGHT, mgh.wallTile, mgh.floorTile, 0.5, 4)
+	mapToUse = mgh.applyConnectionWithMST(  mgh.wallTile, mapToUse )
+	mapToUse = mgh.applyConnectionWithMST(  mgh.wallTile, mapToUse )
+	#mapToUse = mgh.applyConnectionsLinearly( mgh.floorTile,  mgh.floorTile, mapToUse )
+	var points = mgh.findMostDistantPointsWithPaddingFromWall( mgh.getLargestSectionOfTileType(mgh.floorTile, mapToUse), mgh.getArrayOfAllTilesOfOneType(mgh.wallTile, mapToUse), 12, 32)
+	print(points)
+	for point in points:
+		mapToUse = mgh.setCell( point.x, point.y , mgh.TILES.EXTRA, mapToUse)
+	call_deferred_thread_group( "emit_signal", "mapDone" )
+
 
 func setMapToTileset() -> void:
 	t.wait_to_finish()
