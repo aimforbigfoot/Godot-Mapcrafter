@@ -22,12 +22,12 @@ func _ready() -> void:
 func pick_random_function() -> void:
 	var functions = [
 		"genReallyNaturalCaves", 
-		#"genMapHollow", 
-		#"genWebbyMap", 
-		#"genConnectedBlobbyRooms", 
-		#"genCircularRooms", 
-		#"genVienyMaps", 
-		#"genOpenCaveLikeMaps",
+		"genMapHollow", 
+		"genWebbyMap", 
+		"genConnectedBlobbyRooms", 
+		"genCircularRooms", 
+		"genVienyMaps", 
+		"genOpenCaveLikeMaps",
 		#"randomCaves"
 	]
 	var random_func = functions[randi_range(0, functions.size() - 1)]
@@ -58,10 +58,10 @@ func genReallyNaturalCaves() -> void:
 	print("done smoothing")
 	mapToUse = mgh.drawBorder(1, mgh.wallTile, mapToUse)
 	print("done second border")
-	#mapToUse = mgh.applyConnectionsWithRandomWalks( mgh.floorTile, mgh.floorTile, 100, mapToUse )
-	#print("done random connections")
-	#mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse)
-	#print("done proper connections")
+	mapToUse = mgh.applyConnectionsWithRandomWalks( mgh.floorTile, mgh.floorTile, 100, mapToUse )
+	print("done random connections")
+	mapToUse = mgh.applyConnectionWithMST(mgh.floorTile, mapToUse)
+	print("done proper connections")
 	call_deferred_thread_group( "emit_signal", "mapDone" )
 
 func genMapHollow() -> void:
