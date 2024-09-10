@@ -15,9 +15,7 @@ Welcome to the Godot Mapcrafter project, your comprehensive toolkit for generati
 2. Attach to a Node: Attach the MapGenHandler script to a Node in your Godot scene.
 ### Initialization
 In your Godot scene, attach the script to a Node and call the necessary functions to generate and manipulate your maps. Here's an example of how to initialize and use the MapGenHandler:
-```
-gdscript
-Copy code
+```gdscript
 extends Node
 
 var mapGenHandler := MapGenHandler.new()
