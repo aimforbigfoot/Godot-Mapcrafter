@@ -8,8 +8,9 @@ func _ready() -> void:
 	var map := []
 	map = ttt.generateBlankMap(WIDTH,HEIGHT, ttt.wallTile)
 	for i in 5:
-		map = ttt.drawRandomWalk(  ttt.getARandomPointInMap(map), 100, ttt.floorTile, 2, map)
-	map = ttt.applyConnectionsLinearly( ttt.floorTile, ttt.floorTile, map )
+		map = ttt.drawCircle(  ttt.getARandomPointInMap(map), randi_range(5,10), ttt.floorTile, map)
+	ttt.printMap(map)
+	map = ttt.drawRandomWalksInsideLargeSectionsOfARandomTileType(5, 10, ttt.floorTile, ttt.wallTile, 1, map)
 	ttt.printMap(map)
 
 func _input(event: InputEvent) -> void:

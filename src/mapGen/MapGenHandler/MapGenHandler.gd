@@ -20,6 +20,20 @@
 #    system that requires map generation and real-time modifications.
 #
 # -------------------------------------------------------------------------------------------------
+#
+#                                  Contributions and Thanks!
+#
+#    Thank you to casht0wn for helping to implement
+#    - drawRandomWalksInsideLargeSectionsOfARandomTileType - does what the function says
+#    - getARandomPointInSection - since sections are 1D, this allows for getting a point
+#
+#
+#
+#
+#
+#
+# -------------------------------------------------------------------------------------------------
+
 
 
 extends Node
@@ -42,9 +56,9 @@ func _ready() -> void:
 #
 #
 #
-#			BASIC MAP FUNCTIONS 
+#			BASIC MAP FUNCTIONS
 #	functiosn that make map mods and data collection from the map
-#	a lot easier for the developer (you) :) 
+#	a lot easier for the developer (you) :)
 #
 #
 # ######################################## #
@@ -76,25 +90,32 @@ func getHalfWayOfLength(width:int) -> int:
 func getARandomPointInMap(map:Array) -> Vector2i:
 	var height := map.size()-1
 	var width :int= map[0].size()-1
-	return Vector2i( 
-		randi_range( 0, width ), 
+	return Vector2i(
+		randi_range( 0, width ),
 		randi_range(0, height) )
 func getARandomTileByTileType( tileToGet:int, map:Array ) -> Vector2:
 	var allTilesOfAType := getArrayOfAllTilesOfOneType(tileToGet, map)
 	return allTilesOfAType[ floor( randf() * allTilesOfAType.size() ) ]
 
+func getARandomPointInSection(section: Array) -> Vector2i:
+	# section is an Array of Vector2/Vector2i representing all valid points.
+	if section.size() == 0:
+		return Vector2i(-1, -1) #invalid cord (id like to explore this idea further, not to nad labs)
+	return section[randi_range(0, section.size() - 1)]
+
+
 func getArrayOfAllTilesOfOneType(tileToGet:int, map:Array) -> Array:
 	var b := []
 	var y := 0
 	for row in map:
-		var x := 0 
+		var x := 0
 		for cell in row:
 			if getCell( x,y, map ) == tileToGet:
 				b.append( Vector2(x,y) )
 			x += 1
 		y += 1
 	return b
-	
+
 func setFastNoiseLiteSeed(_seed:int) -> void:
 	fnl.seed = _seed
 	# Function to calculate distance between two points
@@ -127,9 +148,9 @@ func printMap(map:Array) -> void:
 #
 #
 #
-#			MAP MODIFICATIONS 
+#			MAP MODIFICATIONS
 #	modifications are algos that use other cells
-#	or place cells in a defined manner based 
+#	or place cells in a defined manner based
 #	on math or some math function
 #
 #
@@ -140,7 +161,7 @@ func applyRandomCellsToCertainCellType(randomChance:float, cellToSet:int, map:Ar
 	var mapCopy := map.duplicate(true)
 	var y := 0
 	for row in map:
-		var x:= 0 
+		var x:= 0
 		for cell in row:
 			if randf() < randomChance:
 				if getCell(x, y, map) != cellToSet:
@@ -201,7 +222,7 @@ func applyCellularNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map
 			var fnlNoise : float = abs( fnl.get_noise_2d( x, y ) ) * 2
 			if fnlNoise < thresholdValue:
 				a = setCell( x, y, cellToSet, a )
-	return a 
+	return a
 func applyFastPerlinNoise(freqVal:float, thresholdValue:float,  cellToSet:int, map:Array ) -> Array:
 	var a := map.duplicate(true)
 	fnl.noise_type = FastNoiseLite.TYPE_PERLIN
@@ -221,7 +242,7 @@ func applyFastValueNoise( freqVal:float, thresholdValue:float, cellToSet:int, ma
 			var fnlNoise :float =abs(fnl.get_noise_2d(x,y) * 10)
 			if fnlNoise < thresholdValue:
 				a = setCell(x,y, cellToSet, a)
-		
+
 	return a
 
 func applyFastWorleyNoise(tileToSet: int, noise_scale: float, threshold: float, map:Array) -> Array:
@@ -232,7 +253,7 @@ func applyFastWorleyNoise(tileToSet: int, noise_scale: float, threshold: float, 
 			var noise_value :float= abs(fnl.get_noise_2d(x, y))
 			if noise_value > threshold:
 				map = setCell( x,y, tileToSet, map )
-	
+
 	return map
 # Apply cellular automaton (Conway's Game of Life)
 func applyCellularAutomata(generations: int, cellToApplyWith:int, cellToBlankWith:int, map: Array) -> Array:
@@ -266,7 +287,7 @@ func applyErosion(iterations: int, cellToApplyWith:int, cellToGetRidOf:int, map:
 						map_copy[y][x] = cellToApplyWith
 	return map_copy
 #this may not seem to do anything cuz this will truly just grab a random section and turn all the tiles
-# in that section into another tile, 
+# in that section into another tile,
 func applySpecificTileToARandomSetOfTiles(cellToGetSelectionOf:int, cellToTurnInto:int, map:Array) -> Array:
 	var a := map.duplicate(true)
 	var section :=  getARandomSectionByTile(cellToGetSelectionOf, map)
@@ -292,7 +313,7 @@ func applyConwaysGameOfLife(map: Array, generations: int, alive_tile: int, dead_
 	var current_map := map.duplicate(true)
 	var height :int= map.size()
 	var width :int= map[0].size()
-	
+
 	for generation in range(generations):
 		var new_map := current_map.duplicate(true)
 		for y in range(height):
@@ -303,19 +324,19 @@ func applyConwaysGameOfLife(map: Array, generations: int, alive_tile: int, dead_
 				else:
 					new_map[y][x] = alive_tile if alive_neighbors == 3 else dead_tile
 		current_map = new_map
-	
+
 	return current_map
 
 
 
 # ###########################################
-# Connections functions 
+# Connections functions
 
 # Function to connect all sections
 func applyConnectionsToAllSections(connectionSize:int, tile_type: int, map: Array) -> Array:
 	var sections = getSections(map)
 	var centroids = []
-	
+
 	for section in sections:
 		centroids.append(calculateCentroid(section))
 	var map_copy = map.duplicate(true)
@@ -427,7 +448,7 @@ func applyConnectionsWithRandomWalks(tile_type: int, connection_tile: int, steps
 		map_copy = drawRandomWalk(start, steps, connection_tile, 1, map_copy)
 
 	return map_copy
-	
+
 func applyConnectionsLinearly(tile_type: int, connection_tile: int, map: Array) -> Array:
 	var sections = getSectionsOfACertainTile(tile_type, map)
 	var map_copy = map.duplicate(true)
@@ -468,9 +489,9 @@ func drawLine( startPoint:Vector2i, endPoint:Vector2i, lineSize:int, stepsToTake
 		var diff := (endPoint- currPos  )
 		var dirToMoveIn : Vector2i
 		if randf() < 0.5:
-			dirToMoveIn = Vector2i( sign(diff.x), 0 ) 
+			dirToMoveIn = Vector2i( sign(diff.x), 0 )
 		else:
-			dirToMoveIn = Vector2i( 0, sign(diff.y) ) 
+			dirToMoveIn = Vector2i( 0, sign(diff.y) )
 		currPos += dirToMoveIn
 		for dx in range( -lineSize, lineSize  ):
 			for dy in range( -lineSize, lineSize ):
@@ -482,13 +503,13 @@ func drawBox(startPoint:Vector2i, size:int,  cellToSet:int, map:Array) -> Array:
 	for y in range( -size+startPoint.y, size+1+startPoint.y ):
 		for x in range( -size+startPoint.x, size+1+startPoint.x ):
 			a = setCell(x,y, cellToSet, a)
-	return a 
+	return a
 func drawBorder(border_size: int, cellToSet: int, map: Array) -> Array:
 	var heightAndWidth := getMapHeightAndWidth(map)
 	var height: int = heightAndWidth[0]
 	var width: int = heightAndWidth[1]
 	var a := map.duplicate(true)
-	
+
 	for y in range(height):
 		for i in range(border_size):
 			if y < height:
@@ -582,7 +603,7 @@ func drawToFillInPatchesOfASizeByTileType(min_size: int, cellToCheck:int, cellTo
 	var map_copy = map.duplicate(true)
 	for section in sections:
 		if section:
-			
+
 			var firstPos :Vector2= section[0]
 			if getCell(firstPos.x, firstPos.y, map_copy) == cellToCheck:
 				if section.size() < min_size:
@@ -590,15 +611,21 @@ func drawToFillInPatchesOfASizeByTileType(min_size: int, cellToCheck:int, cellTo
 						map_copy = setCell( pos.x, pos.y, cellToFillWith, map_copy )
 	return map_copy
 
-func drawRandomWalksInsideLargeSectionsOfARandomTileType( timesToPlaceAWalk:int, 
-					walkCount:int, 
-					tileTypeOfSection:int, 
-					tileTypeToPlace:int, 
-					map:Array 
+func drawRandomWalksInsideLargeSectionsOfARandomTileType(timesToPlaceAWalk: int,
+					walkCount: int,
+					tileTypeOfSection: int,
+					tileTypeToPlace: int,
+					walkThickness: int,
+					map: Array
 			) -> Array:
-	var a := map.duplicate( true )
-	return a
+	var sections := getSectionsOfACertainTile(tileTypeOfSection, map)
+	var map_copy := map.duplicate(true)
+	for i in range(timesToPlaceAWalk):
+		var section := getARandomSection(sections, map)
+		var startPos := getARandomPointInSection(section)
+		map_copy = drawRandomWalk(startPos, walkCount, tileTypeToPlace, walkThickness, map_copy)
 
+	return map_copy
 
 # Updated function for a crazy sporadic walker with thickness
 func drawCrazySporadicWalk(startPos: Vector2i, steps: int, cellToSet: int, thickness: int, map: Array) -> Array:
@@ -606,25 +633,25 @@ func drawCrazySporadicWalk(startPos: Vector2i, steps: int, cellToSet: int, thick
 	var currPos = startPos
 	var directions = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
 					  Vector2i(1, 1), Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1)]
-	
+
 	for i in range(steps):
 		# Randomly choose a direction, including diagonal movements
 		var dir = directions[randi() % directions.size()]
-		
+
 		# Add some randomness to the step size (1 to 3 steps at a time)
 		var step_size = randi() % 3 + 1
 		currPos += dir * step_size
-		
+
 		# Set the cells within the thickness range
 		for dx in range(-thickness, thickness + 1):
 			for dy in range(-thickness, thickness + 1):
 				if dx * dx + dy * dy <= thickness * thickness:
 					a = setCell(currPos.x + dx, currPos.y + dy, cellToSet, a)
-		
+
 		# 10% chance to teleport to a random location on the map
 		if randf() < 0.1:
 			currPos = getARandomPointInMap(a)
-	
+
 	return a
 func drawNonOverlappingWalk(startPos: Vector2i, steps: int, cellToSet: int, map: Array) -> Array:
 	var a = map.duplicate(true)
@@ -660,20 +687,20 @@ func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_ti
 	var height = map.size()
 	var width = map[0].size()
 	var map_copy = map.duplicate(true)
-	
+
 	# Create random wall thickness around the border
 	for y in range(height):
 		for x in range(width):
 			# Calculate distance to the nearest edge (left, right, top, bottom)
 			var distance_to_edge = min(x, width - 1 - x, y, height - 1 - y)
-			
+
 			# Determine random wall thickness for this position
 			var wall_thickness = randi_range(min_wall_thickness, max_wall_thickness)
-			
+
 			# Place wall tiles based on the calculated thickness
 			if distance_to_edge < wall_thickness:
 				map_copy[y][x] = wall_tile
-	
+
 	return map_copy
 
 
@@ -681,7 +708,7 @@ func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_ti
 #
 #
 #
-#			ADVANCED MAP FUNCTIONS 
+#			ADVANCED MAP FUNCTIONS
 #	this will return advanced information about the map
 #
 #
@@ -690,12 +717,12 @@ func drawNaturalBorder(min_wall_thickness: int, max_wall_thickness: int, wall_ti
 func smoothAndRemoveDebris(map: Array, debris_tile: int, replacement_tile: int, debris_threshold: int) -> Array:
 	var map_copy = map.duplicate(true)
 	var sections = getSectionsOfACertainTile(debris_tile, map)
-	
+
 	for section in sections:
 		if section.size() < debris_threshold:
 			for pos in section:
 				map_copy = setCell(pos.x, pos.y, replacement_tile, map_copy)
-	
+
 	return map_copy
 
 
@@ -709,7 +736,7 @@ func countTiles(map: Array) -> Dictionary:
 			countOfTiles[cell] += 1
 	return countOfTiles
 func countSpecificTile(tileToCheck:int, map:Array ) -> int:
-	var count := 0 
+	var count := 0
 	for row in map:
 		for cell in row:
 			if cell == tileToCheck:
@@ -827,14 +854,14 @@ func applySmoothing(map: Array, wall_tile: int, floor_tile: int, smoothing_itera
 	var height = map.size()
 	var width = map[0].size()
 	var map_copy = map.duplicate(true)
-	
+
 	for iteration in range(smoothing_iterations):
 		var new_map = map_copy.duplicate(true)
-		
+
 		for y in range(height):
 			for x in range(width):
 				var wall_count = countNeighborsOfCertainCellType(x, y, wall_tile, map_copy)
-				
+
 				# Apply smoothing rules:
 				if map_copy[y][x] == wall_tile:
 					# If a wall has less than 4 wall neighbors, it becomes a floor.
@@ -844,16 +871,16 @@ func applySmoothing(map: Array, wall_tile: int, floor_tile: int, smoothing_itera
 					# If a floor has 5 or more wall neighbors, it becomes a wall.
 					if wall_count >= 5:
 						new_map[y][x] = wall_tile
-		
+
 		map_copy = new_map
-	
+
 	return map_copy
 
 # ######################################## #
 #
 #
 #
-#			MAP SECTION FUNCTIONS 
+#			MAP SECTION FUNCTIONS
 #	functions that relate to sections of a map
 #	and their manipulation / calulation
 #
@@ -918,7 +945,7 @@ func findCenterTileGivenASection(section: Array) -> Vector2:
 func checkAndConnectIfAllSectionsOfACertainTileAreConnected(tileToCheck:int, mapToCheck:Array) -> Array:
 	var a := mapToCheck.duplicate(true)
 	var sectionsByTile = getSectionsOfACertainTile(tileToCheck, mapToCheck)
-	var i := 0 
+	var i := 0
 	for section in sectionsByTile:
 		if i < sectionsByTile.size()-1:
 			var points := closestPointsBetweenSections( sectionsByTile[i], sectionsByTile[i+1]  )
@@ -932,8 +959,8 @@ func checkAndConnectIfAllSectionsOfACertainTileAreConnected(tileToCheck:int, map
 		print("these are not connected")
 		for section in sectionsByTile:
 			pass
-	return a 
-	
+	return a
+
 # Function to calculate the closest points between two sections
 func closestPointsBetweenSections(section1: Array, section2: Array) -> Array:
 	var min_distance = INF
@@ -1076,17 +1103,17 @@ func connectClosestSections(tile_type: int, connection_tile: int, map: Array) ->
 	var sections = getSectionsOfACertainTile(tile_type, map)
 	var map_copy = map.duplicate(true)
 	var connections_made = {}
-	
+
 	# Calculate centroids for all sections
 	var centroids = []
 	for section in sections:
 		centroids.append(calculateCentroid(section))
-	
+
 	# Connect sections
 	for i in range(centroids.size()):
 		var closest_distance = INF
 		var closest_centroid_index = -1
-		
+
 		# Find the closest centroid to the current one
 		for j in range(centroids.size()):
 			if i != j:
@@ -1094,7 +1121,7 @@ func connectClosestSections(tile_type: int, connection_tile: int, map: Array) ->
 				if dist < closest_distance:
 					closest_distance = dist
 					closest_centroid_index = j
-		
+
 		if closest_centroid_index != -1:
 			var connection_key = min(i, closest_centroid_index) * 1000 + max(i, closest_centroid_index)  # Unique key for each pair
 			if not connections_made.has(connection_key):
@@ -1137,8 +1164,8 @@ func generateRandomMap(width: int, height: int, tile_type1: int, tile_type2: int
 		map.append(row)
 	return map
 
-	
-	
+
+
 # Generate a map with a border of specified thickness
 func generateBorderedMap(width: int, height: int, border_tile: int, inner_tile: int, border_thickness: int = 1) -> Array:
 	var map = []
@@ -1203,24 +1230,24 @@ func generateMapWithBox(width: int, height: int, mapTile: int, boxTile: int, top
 		for x in range(width):
 			row.append(mapTile)
 		map.append(row)
-	
+
 	# Place the box/room in the map
 	for y in range(topLeftPosOfBox.y, topLeftPosOfBox.y + boxHeight):
 		for x in range(topLeftPosOfBox.x, topLeftPosOfBox.x + boxWidth):
 			map = setCell( x, y, boxTile, map )
-	
+
 	return map
 
 # Generate a map with a cellular automata cave-like structure
 func generateCaveMap(width: int, height: int, wall_tile: int, floor_tile: int, initial_chance: float = 0.45, iterations: int = 4) -> Array:
 	var map = generateBlankMap(width, height, floor_tile)
-	
+
 	# Initialize with random walls
 	for y in range(height):
 		for x in range(width):
 			if randf() < initial_chance:
 				setCell(x,y, wall_tile, map)
-	
+
 	# Apply cellular automata rules
 	for i in range(iterations):
 		var new_map = map.duplicate(true)
@@ -1232,5 +1259,5 @@ func generateCaveMap(width: int, height: int, wall_tile: int, floor_tile: int, i
 				else:
 					new_map[y][x] = wall_tile if neighbors >= 5 else floor_tile
 		map = new_map
-	
+
 	return map
